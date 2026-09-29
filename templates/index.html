@@ -4,6 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 영화 큐레이터 | 맞춤 영화 추천 서비스 (TOP 3)</title>
+    
+    <!-- PWA 웹앱 매니페스트 및 메타 설정 -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#0b0f19">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AI영화추천">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+    
     <!-- 구글 폰트: Noto Sans KR -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,9 +25,16 @@
     <div class="app-container">
         <!-- 헤더 영역 -->
         <header class="app-header">
-            <div class="logo">
-                <span class="logo-icon">🎬</span>
-                <h1>AI Movie Curator</h1>
+            <div class="header-top">
+                <div class="logo">
+                    <span class="logo-icon">🎬</span>
+                    <h1>AI Movie Curator</h1>
+                </div>
+                <!-- PWA 앱 설치 버튼 (설치 가능한 환경에서 자동 노출) -->
+                <button id="pwaInstallBtn" class="pwa-install-btn hidden">
+                    <span>📲</span>
+                    <span>앱 설치하기</span>
+                </button>
             </div>
             <p class="subtitle">구글 Gemini 3.5 AI와 실시간 검색으로 당신의 취향에 꼭 맞는 인생 영화 3편을 추천해 드립니다.</p>
         </header>
@@ -120,7 +137,7 @@
 
         <!-- 푸터 영역 -->
         <footer class="app-footer">
-            <p>© 2026 AI Movie Recommender • Powered by Google Gemini 3.5 & Serper API</p>
+            <p>© 2026 AI Movie Recommender • Powered by Google Gemini 3.5 & Serper API • PWA 지원</p>
         </footer>
     </div>
 

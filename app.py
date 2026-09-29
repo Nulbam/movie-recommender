@@ -5,7 +5,7 @@ import logging
 import urllib.parse
 import requests
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory, make_response
 from google import genai
 from google.genai import types
 
@@ -179,6 +179,14 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/sw.js")
+def service_worker():
+    """PWA 서비스 워커 서빙 (사이트 전체 루트 스코프 적용)"""
+    response = make_response(send_from_directory(os.path.join(app.root_path, "static"), "sw.js", mimetype="application/javascript"))
+    response.headers["Service-Worker-Allowed"] = "/"
+    return response
+
+
 @app.route("/recommend", methods=["POST"])
 def recommend():
     """사용자 조건에 맞춰 영화 3편을 추천하고 정밀 OTT 정보를 결합하여 반환"""
@@ -295,17 +303,13 @@ def recommend():
         if isinstance(movies_data, dict):
             movies_data = [movies_data]
 
-        # 4. 각 영화에 대해 실시간 포스터 및 100% 실시간 OTT 검증 수행
         enriched_movies = []
         for idx, movie_info in enumerate(movies_data[:3], start=1):
             movie_title = movie_info.get("title", "")
             release_year = movie_info.get("release_year", "")
             production_country = movie_info.get("production_country", "해외" if origin == "해외" else "대한민국")
 
-            # 포스터 이미지 검색
             poster_url = search_poster_serper(movie_title, release_year)
-
-            # 정밀 실시간 OTT 정보 검색
             ott_info = search_ott_realtime(movie_title)
 
             enriched_movies.append({

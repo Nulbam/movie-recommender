@@ -1,6 +1,6 @@
 /**
  * ==========================================================================
- * AI 영화 큐레이터 - 프론트엔드 인터랙션 스크립트 (국내/해외 엄격 분리 & 정밀 OTT)
+ * AI 영화 큐레이터 - 프론트엔드 인터랙션 스크립트 (PWA 설치 & 정밀 실시간 OTT)
  * ==========================================================================
  */
 
@@ -18,10 +18,53 @@ document.addEventListener("DOMContentLoaded", () => {
     const errorMessage = document.getElementById("errorMessage");
     const resultSection = document.getElementById("resultSection");
     const movieCardsContainer = document.getElementById("movieCardsContainer");
+    const pwaInstallBtn = document.getElementById("pwaInstallBtn");
 
     const DEFAULT_POSTER = "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=600&q=80";
 
-    // 2. 폼 제출 이벤트 핸들러
+    // 2. PWA 서비스 워커 등록 및 앱 설치(Install) 이벤트 제어
+    let deferredPrompt = null;
+
+    if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+            navigator.serviceWorker.register("/sw.js")
+                .then((reg) => {
+                    console.log("PWA Service Worker 등록 성공:", reg.scope);
+                })
+                .catch((err) => {
+                    console.log("PWA Service Worker 등록 실패:", err);
+                });
+        });
+    }
+
+    // 브라우저가 앱 설치가 가능하다고 알릴 때(beforeinstallprompt)
+    window.addEventListener("beforeinstallprompt", (e) => {
+        e.preventDefault(); // 기본 작은 배너 방지
+        deferredPrompt = e;  // 이벤트 저장
+        if (pwaInstallBtn) {
+            pwaInstallBtn.classList.remove("hidden"); // 설치 버튼 표시
+        }
+    });
+
+    if (pwaInstallBtn) {
+        pwaInstallBtn.addEventListener("click", async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt(); // 브라우저 설치 대화상자 호출
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`사용자 설치 선택: ${outcome}`);
+            deferredPrompt = null;
+            pwaInstallBtn.classList.add("hidden");
+        });
+    }
+
+    window.addEventListener("appinstalled", () => {
+        console.log("PWA 앱 설치 완료!");
+        if (pwaInstallBtn) {
+            pwaInstallBtn.classList.add("hidden");
+        }
+    });
+
+    // 3. 폼 제출 이벤트 핸들러
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
 
@@ -86,7 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // 3. 각 OTT 플랫폼별 실시간 검색/감상 링크 생성 헬퍼 함수
+    // 4. 각 OTT 플랫폼별 실시간 검색/감상 링크 생성 헬퍼 함수
     function getOttSearchUrl(platform, movieTitle) {
         const encodedTitle = encodeURIComponent(movieTitle);
         const name = (platform || "").toLowerCase();
@@ -112,7 +155,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // 4. 3편의 영화 카드를 동적으로 생성하여 렌더링하는 함수
+    // 5. 3편의 영화 카드를 동적으로 생성하여 렌더링하는 함수
     function renderMoviesResult(movies) {
         movieCardsContainer.innerHTML = "";
 

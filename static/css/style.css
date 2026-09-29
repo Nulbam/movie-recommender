@@ -1,5 +1,5 @@
 /* ==========================================================================
-   AI 영화 큐레이터 - 모던 시네마 다크 테마 스타일시트 (국내/해외 엄격 분리 & 정밀 OTT)
+   AI 영화 큐레이터 - 모던 시네마 다크 테마 스타일시트 (PWA 지원)
    ========================================================================== */
 
 /* 1. 기본 리셋 및 컬러 변수 정의 */
@@ -50,17 +50,24 @@ body {
     margin: 0 auto;
 }
 
-/* 헤더 */
+/* 헤더 및 PWA 설치 버튼 */
 .app-header {
     text-align: center;
     margin-bottom: 40px;
+}
+
+.header-top {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin-bottom: 8px;
 }
 
 .logo {
     display: inline-flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 8px;
 }
 
 .logo-icon {
@@ -74,6 +81,29 @@ body {
     background: linear-gradient(135deg, #ffffff 40%, var(--accent-gold) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+}
+
+.pwa-install-btn {
+    position: absolute;
+    right: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, var(--accent-gold) 0%, #ea580c 100%);
+    color: #0b0f19;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    transition: var(--transition);
+}
+
+.pwa-install-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(245, 158, 11, 0.5);
 }
 
 .subtitle {
@@ -612,6 +642,16 @@ textarea {
 
     .card {
         padding: 22px 18px;
+    }
+
+    .header-top {
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .pwa-install-btn {
+        position: static;
+        width: fit-content;
     }
 
     .split-view {

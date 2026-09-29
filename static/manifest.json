@@ -1,0 +1,24 @@
+{
+  "name": "AI 영화 큐레이터 (Movie Curator)",
+  "short_name": "AI영화추천",
+  "description": "구글 Gemini 3.5 AI와 실시간 검색으로 맞춤 인생 영화를 큐레이션하는 웹앱",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0f19",
+  "theme_color": "#0b0f19",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
