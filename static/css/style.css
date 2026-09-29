@@ -1,5 +1,5 @@
 /* ==========================================================================
-   AI 영화 큐레이터 - 모던 시네마 다크 테마 스타일시트 (PWA 지원)
+   AI 영화 큐레이터 - 모던 시네마 다크 테마 스타일시트 (보안 잠금 & PWA 지원)
    ========================================================================== */
 
 /* 1. 기본 리셋 및 컬러 변수 정의 */
@@ -44,13 +44,122 @@ body {
     min-height: 100vh;
 }
 
-/* 2. 전체 레이아웃 컨테이너 */
+/* 2. 로그인 및 보안 잠금 화면 전용 레이아웃 */
+.login-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.login-wrapper {
+    width: 100%;
+    max-width: 440px;
+    margin: 0 auto;
+}
+
+.login-card {
+    text-align: center;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), var(--shadow-glow);
+    padding: 40px 32px;
+}
+
+.lock-icon-wrap {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 18px;
+    background: rgba(245, 158, 11, 0.12);
+    border: 2px solid var(--accent-gold);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+}
+
+.lock-icon {
+    font-size: 2.2rem;
+}
+
+.login-title {
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 8px;
+}
+
+.login-subtitle {
+    font-size: 0.92rem;
+    color: var(--text-secondary);
+    margin-bottom: 28px;
+    line-height: 1.5;
+}
+
+.password-group {
+    text-align: left;
+    margin-bottom: 24px;
+}
+
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-input-wrapper input {
+    padding-right: 48px;
+    font-size: 1.05rem;
+    letter-spacing: 2px;
+}
+
+.toggle-password-btn {
+    position: absolute;
+    right: 12px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    opacity: 0.6;
+    transition: var(--transition);
+}
+
+.toggle-password-btn:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.login-error-msg {
+    color: var(--accent-red);
+    font-size: 0.85rem;
+    margin-top: 8px;
+    font-weight: 500;
+}
+
+.login-footer {
+    margin-top: 24px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* 카드 흔들림 애니메이션 (비밀번호 오류 시) */
+.shake-animation {
+    animation: shake 0.4s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-8px); }
+    40%, 80% { transform: translateX(8px); }
+}
+
+/* 3. 전체 레이아웃 컨테이너 */
 .app-container {
     max-width: 980px;
     margin: 0 auto;
 }
 
-/* 헤더 및 PWA 설치 버튼 */
+/* 헤더 및 액션 버튼 */
 .app-header {
     text-align: center;
     margin-bottom: 40px;
@@ -83,9 +192,15 @@ body {
     -webkit-text-fill-color: transparent;
 }
 
-.pwa-install-btn {
+.header-actions {
     position: absolute;
     right: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pwa-install-btn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -106,13 +221,34 @@ body {
     box-shadow: 0 6px 16px rgba(245, 158, 11, 0.5);
 }
 
+.logout-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 7px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.logout-btn:hover {
+    border-color: var(--accent-red);
+    color: var(--accent-red);
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
 .subtitle {
     font-size: 1.05rem;
     color: var(--text-secondary);
     font-weight: 300;
 }
 
-/* 3. 공통 카드 스타일 */
+/* 4. 공통 카드 스타일 */
 .card {
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -132,7 +268,7 @@ body {
     padding-bottom: 14px;
 }
 
-/* 4. 입력 폼 컴포넌트 */
+/* 5. 입력 폼 컴포넌트 */
 .form-group {
     margin-bottom: 22px;
 }
@@ -158,6 +294,7 @@ body {
 
 /* 입력 필드 */
 input[type="text"],
+input[type="password"],
 select,
 textarea {
     width: 100%;
@@ -173,6 +310,7 @@ textarea {
 }
 
 input[type="text"]:focus,
+input[type="password"]:focus,
 select:focus,
 textarea:focus {
     border-color: var(--border-focus);
@@ -255,7 +393,7 @@ textarea {
     transform: none;
 }
 
-/* 5. 로딩 인디케이터 */
+/* 6. 로딩 인디케이터 */
 .loading-card {
     text-align: center;
     padding: 50px 20px;
@@ -286,7 +424,7 @@ textarea {
     font-size: 0.95rem;
 }
 
-/* 6. 에러 카드 */
+/* 7. 에러 카드 */
 .error-card {
     display: flex;
     align-items: flex-start;
@@ -310,7 +448,7 @@ textarea {
     font-size: 0.95rem;
 }
 
-/* 7. 추천 결과 목록 컨테이너 */
+/* 8. 추천 결과 목록 컨테이너 */
 .result-header {
     text-align: center;
     margin-bottom: 30px;
@@ -499,7 +637,7 @@ textarea {
     font-style: italic;
 }
 
-/* 8. 정밀 OTT 섹션 스타일 */
+/* 9. 정밀 OTT 섹션 스타일 */
 .ott-section-block {
     background-color: rgba(15, 23, 42, 0.6);
     border: 1px solid var(--border-color);
@@ -552,14 +690,12 @@ textarea {
     opacity: 0.7;
 }
 
-/* 실제 스트리밍 중인 플랫폼 스타일 (녹색 강조) */
 .ott-streaming {
     border-color: #10b981;
     background-color: rgba(16, 185, 129, 0.1);
     color: #34d399;
 }
 
-/* 대여/구매 플랫폼 스타일 */
 .ott-rent {
     border-color: #64748b;
     background-color: rgba(100, 116, 139, 0.15);
@@ -576,7 +712,6 @@ textarea {
     display: inline-block;
 }
 
-/* 100% 공식 검증 버튼 그룹 */
 .ott-verify-actions {
     display: flex;
     flex-wrap: wrap;
@@ -622,7 +757,7 @@ textarea {
     transform: translateY(-2px);
 }
 
-/* 9. 유틸리티 및 푸터 */
+/* 10. 유틸리티 및 푸터 */
 .hidden {
     display: none !important;
 }
@@ -634,7 +769,7 @@ textarea {
     margin-top: 40px;
 }
 
-/* 10. 반응형 미디어 쿼리 */
+/* 11. 반응형 미디어 쿼리 */
 @media (max-width: 768px) {
     body {
         padding: 20px 12px;
@@ -649,9 +784,10 @@ textarea {
         gap: 14px;
     }
 
-    .pwa-install-btn {
+    .header-actions {
         position: static;
-        width: fit-content;
+        width: 100%;
+        justify-content: center;
     }
 
     .split-view {

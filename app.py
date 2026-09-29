@@ -5,7 +5,7 @@ import logging
 import urllib.parse
 import requests
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, jsonify, send_from_directory, make_response
+from flask import Flask, render_template, request, jsonify, send_from_directory, make_response, session, redirect, url_for
 from google import genai
 from google.genai import types
 
@@ -17,6 +17,9 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+
+# 세션 암호화 키 설정
+app.secret_key = os.getenv("SECRET_KEY", "movie-curator-super-secret-key-2026")
 
 # 기본 대체 포스터 이미지 (검색 실패나 이미지 누락 시 사용)
 DEFAULT_POSTER = "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=600&q=80"
@@ -175,8 +178,31 @@ def search_ott_realtime(movie_title):
 
 @app.route("/")
 def index():
-    """메인 페이지 HTML 렌더링"""
+    """메인 라우트: 로그인 여부를 확인하여 잠금 화면(login.html) 또는 메인 앱(index.html) 서빙"""
+    if not session.get("authenticated"):
+        return render_template("login.html")
     return render_template("index.html")
+
+
+@app.route("/login", methods=["POST"])
+def login():
+    """비밀번호 검증 및 세션 인증 부여"""
+    data = request.get_json(silent=True) or {}
+    password = data.get("password", "").strip()
+
+    correct_password = os.getenv("ACCESS_PASSWORD", "1234")
+    if password == correct_password:
+        session["authenticated"] = True
+        return jsonify({"success": True})
+    else:
+        return jsonify({"success": False, "error": "비밀번호가 올바르지 않습니다."}), 401
+
+
+@app.route("/logout")
+def logout():
+    """로그아웃 처리 후 메인 잠금 화면으로 이동"""
+    session.pop("authenticated", None)
+    return redirect(url_for("index"))
 
 
 @app.route("/sw.js")
@@ -189,7 +215,11 @@ def service_worker():
 
 @app.route("/recommend", methods=["POST"])
 def recommend():
-    """사용자 조건에 맞춰 영화 3편을 추천하고 정밀 OTT 정보를 결합하여 반환"""
+    """사용자 조건에 맞춰 영화 3편을 추천하고 정밀 OTT 정보를 결합하여 반환 (보안 인증 필수)"""
+    # 0. 세션 로그인 인증 확인 (비밀번호 미입력 접근 차단)
+    if not session.get("authenticated"):
+        return jsonify({"success": False, "error": "인증되지 않은 접근입니다. 먼저 비밀번호로 로그인해 주세요."}), 401
+
     data = request.get_json(silent=True) or {}
 
     genre = data.get("genre", "").strip()

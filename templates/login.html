@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>보안 접근 인증 | AI 영화 큐레이터</title>
+    
+    <!-- PWA 웹앱 매니페스트 및 메타 설정 -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#0b0f19">
+    
+    <!-- 구글 폰트: Noto Sans KR -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <!-- 전용 스타일시트 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="login-body">
+    <div class="login-wrapper">
+        <div class="card login-card" id="loginBox">
+            <!-- 자물쇠 보안 헤더 -->
+            <div class="login-header">
+                <div class="lock-icon-wrap">
+                    <span class="lock-icon">🔒</span>
+                </div>
+                <h1 class="login-title">보안 접근 인증</h1>
+                <p class="login-subtitle">AI Movie Curator 서비스에 접속하려면 비밀번호를 입력해 주세요.</p>
+            </div>
+
+            <!-- 비밀번호 입력 폼 -->
+            <form id="loginForm" novalidate>
+                <div class="form-group password-group">
+                    <label for="password">접속 비밀번호</label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="password" name="password" placeholder="비밀번호를 입력하세요" required autofocus autocomplete="current-password">
+                        <button type="button" id="togglePasswordBtn" class="toggle-password-btn" title="비밀번호 표시/숨김">
+                            👁️
+                        </button>
+                    </div>
+                    <p id="loginError" class="login-error-msg hidden"></p>
+                </div>
+
+                <button type="submit" id="loginSubmitBtn" class="btn btn-primary">
+                    <span class="btn-text">보안 인증 및 입장</span>
+                </button>
+            </form>
+
+            <div class="login-footer">
+                <p>🔒 암호화된 세션으로 안전하게 보호되고 있습니다.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 간결한 로그인 인터랙션 스크립트 -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const form = document.getElementById("loginForm");
+            const passwordInput = document.getElementById("password");
+            const toggleBtn = document.getElementById("togglePasswordBtn");
+            const errorMsg = document.getElementById("loginError");
+            const submitBtn = document.getElementById("loginSubmitBtn");
+            const loginBox = document.getElementById("loginBox");
+
+            // 비밀번호 표시 / 숨김 토글
+            toggleBtn.addEventListener("click", () => {
+                if (passwordInput.type === "password") {
+                    passwordInput.type = "text";
+                    toggleBtn.textContent = "🙈";
+                } else {
+                    passwordInput.type = "password";
+                    toggleBtn.textContent = "👁️";
+                }
+            });
+
+            // 로그인 폼 제출
+            form.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const password = passwordInput.value.trim();
+
+                if (!password) {
+                    showError("비밀번호를 입력해 주세요.");
+                    return;
+                }
+
+                submitBtn.disabled = true;
+                submitBtn.querySelector(".btn-text").textContent = "인증 확인 중...";
+                hideError();
+
+                try {
+                    const response = await fetch("/login", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ password: password })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        // 로그인 성공 시 메인 화면으로 새로고침
+                        window.location.reload();
+                    } else {
+                        showError(data.error || "비밀번호가 올바르지 않습니다.");
+                        // 카드 흔들림 애니메이션 효과
+                        loginBox.classList.add("shake-animation");
+                        setTimeout(() => loginBox.classList.remove("shake-animation"), 500);
+                        passwordInput.select();
+                    }
+                } catch (err) {
+                    showError("서버와 통신할 수 없습니다. 잠시 후 다시 시도해 주세요.");
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.querySelector(".btn-text").textContent = "보안 인증 및 입장";
+                }
+            });
+
+            function showError(msg) {
+                errorMsg.textContent = msg;
+                errorMsg.classList.remove("hidden");
+            }
+
+            function hideError() {
+                errorMsg.textContent = "";
+                errorMsg.classList.add("hidden");
+            }
+        });
+    </script>
+</body>
+</html>
