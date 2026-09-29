@@ -1,6 +1,6 @@
 /**
  * ==========================================================================
- * AI 영화 큐레이터 - 프론트엔드 인터랙션 스크립트 (PWA 설치 & 정밀 실시간 OTT)
+ * AI 영화 큐레이터 - 프론트엔드 인터랙션 스크립트 (캘린더 기간 검색 & PWA & 보안)
  * ==========================================================================
  */
 
@@ -11,6 +11,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const keywordInput = document.getElementById("keyword");
     const actorInput = document.getElementById("actor");
     const runtimeInput = document.getElementById("runtime");
+    const startDateInput = document.getElementById("startDate");
+    const endDateInput = document.getElementById("endDate");
+    const resetDateBtn = document.getElementById("resetDateBtn");
+    const presetButtons = document.querySelectorAll(".preset-btn");
     const submitBtn = document.getElementById("submitBtn");
 
     const loadingSection = document.getElementById("loadingSection");
@@ -22,34 +26,81 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const DEFAULT_POSTER = "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=600&q=80";
 
-    // 2. PWA 서비스 워커 등록 및 앱 설치(Install) 이벤트 제어
+    // 2. 캘린더 빠른 프리셋 선택 버튼 이벤트 제어
+    presetButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+            presetButtons.forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+
+            const preset = btn.getAttribute("data-preset");
+            const currentYear = new Date().getFullYear();
+
+            switch (preset) {
+                case "all":
+                    startDateInput.value = "";
+                    endDateInput.value = "";
+                    break;
+                case "latest":
+                    startDateInput.value = `${currentYear - 2}-01-01`;
+                    endDateInput.value = `${currentYear}-12-31`;
+                    break;
+                case "2020s":
+                    startDateInput.value = "2020-01-01";
+                    endDateInput.value = `${currentYear}-12-31`;
+                    break;
+                case "2010s":
+                    startDateInput.value = "2010-01-01";
+                    endDateInput.value = "2019-12-31";
+                    break;
+                case "2000s":
+                    startDateInput.value = "2000-01-01";
+                    endDateInput.value = "2009-12-31";
+                    break;
+                case "classic":
+                    startDateInput.value = "1930-01-01";
+                    endDateInput.value = "1999-12-31";
+                    break;
+            }
+        });
+    });
+
+    // 직접 날짜를 입력하거나 변경하면 프리셋 버튼 active 해제
+    [startDateInput, endDateInput].forEach(input => {
+        input.addEventListener("change", () => {
+            presetButtons.forEach(b => b.classList.remove("active"));
+        });
+    });
+
+    // 날짜 리셋 버튼
+    resetDateBtn.addEventListener("click", () => {
+        startDateInput.value = "";
+        endDateInput.value = "";
+        presetButtons.forEach(b => b.classList.remove("active"));
+        const allBtn = document.querySelector('.preset-btn[data-preset="all"]');
+        if (allBtn) allBtn.classList.add("active");
+    });
+
+    // 3. PWA 서비스 워커 등록 및 앱 설치 이벤트
     let deferredPrompt = null;
 
     if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
             navigator.serviceWorker.register("/sw.js")
-                .then((reg) => {
-                    console.log("PWA Service Worker 등록 성공:", reg.scope);
-                })
-                .catch((err) => {
-                    console.log("PWA Service Worker 등록 실패:", err);
-                });
+                .then((reg) => console.log("PWA Service Worker 등록 성공:", reg.scope))
+                .catch((err) => console.log("PWA Service Worker 등록 실패:", err));
         });
     }
 
-    // 브라우저가 앱 설치가 가능하다고 알릴 때(beforeinstallprompt)
     window.addEventListener("beforeinstallprompt", (e) => {
-        e.preventDefault(); // 기본 작은 배너 방지
-        deferredPrompt = e;  // 이벤트 저장
-        if (pwaInstallBtn) {
-            pwaInstallBtn.classList.remove("hidden"); // 설치 버튼 표시
-        }
+        e.preventDefault();
+        deferredPrompt = e;
+        if (pwaInstallBtn) pwaInstallBtn.classList.remove("hidden");
     });
 
     if (pwaInstallBtn) {
         pwaInstallBtn.addEventListener("click", async () => {
             if (!deferredPrompt) return;
-            deferredPrompt.prompt(); // 브라우저 설치 대화상자 호출
+            deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
             console.log(`사용자 설치 선택: ${outcome}`);
             deferredPrompt = null;
@@ -58,13 +109,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     window.addEventListener("appinstalled", () => {
-        console.log("PWA 앱 설치 완료!");
-        if (pwaInstallBtn) {
-            pwaInstallBtn.classList.add("hidden");
-        }
+        if (pwaInstallBtn) pwaInstallBtn.classList.add("hidden");
     });
 
-    // 3. 폼 제출 이벤트 핸들러
+    // 4. 폼 제출 이벤트 핸들러
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
 
@@ -74,6 +122,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const keyword = keywordInput.value.trim();
         const actor = actorInput.value.trim();
         const runtime = runtimeInput.value.trim();
+        const startDate = startDateInput.value.trim();
+        const endDate = endDateInput.value.trim();
 
         if (!genre) {
             alert("영화 장르를 선택해 주세요!");
@@ -89,6 +139,12 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!keyword) {
             alert("원하는 영화의 스토리나 분위기 키워드를 입력해 주세요!");
             keywordInput.focus();
+            return;
+        }
+
+        if (startDate && endDate && startDate > endDate) {
+            alert("시작일이 종료일보다 늦을 수 없습니다. 기간을 다시 확인해 주세요!");
+            startDateInput.focus();
             return;
         }
 
@@ -109,7 +165,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     origin: origin,
                     keyword: keyword,
                     actor: actor,
-                    runtime: runtime
+                    runtime: runtime,
+                    start_date: startDate,
+                    end_date: endDate
                 })
             });
 
@@ -129,7 +187,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // 4. 각 OTT 플랫폼별 실시간 검색/감상 링크 생성 헬퍼 함수
+    // 5. 각 OTT 플랫폼별 실시간 검색/감상 링크 생성 헬퍼 함수
     function getOttSearchUrl(platform, movieTitle) {
         const encodedTitle = encodeURIComponent(movieTitle);
         const name = (platform || "").toLowerCase();
@@ -155,7 +213,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // 5. 3편의 영화 카드를 동적으로 생성하여 렌더링하는 함수
+    // 6. 3편의 영화 카드를 동적으로 생성하여 렌더링하는 함수
     function renderMoviesResult(movies) {
         movieCardsContainer.innerHTML = "";
 
@@ -182,7 +240,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const kinolightsUrl = ottInfo.kinolights_url || `https://m.kinolights.com/search?keyword=${encodeURIComponent(movie.title)}`;
             const justwatchUrl = ottInfo.justwatch_url || `https://www.justwatch.com/kr/%EA%B2%80%EC%83%89?q=${encodeURIComponent(movie.title)}`;
 
-            // 1) 정액제 스트리밍 배지 HTML
+            // 정액제 스트리밍 배지 HTML
             let streamingBadgesHtml = "";
             if (streamingList.length > 0) {
                 streamingBadgesHtml = streamingList.map(platform => {
@@ -198,7 +256,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 streamingBadgesHtml = `<span class="ott-no-service">현재 월정액 스트리밍 서비스 미제공 (개별 구매/대여 전용)</span>`;
             }
 
-            // 2) 대여/구매 배지 HTML
+            // 대여/구매 배지 HTML
             let rentBadgesHtml = "";
             if (rentList.length > 0) {
                 rentBadgesHtml = rentList.map(platform => {
@@ -243,7 +301,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             ${movie.original_title ? `<p class="movie-original-title">(${escapeHtml(movie.original_title)})</p>` : ""}
                         </div>
 
-                        <!-- 메타 정보 배지 (제작 국가 명시) -->
+                        <!-- 메타 정보 배지 (제작 국가 & 개봉연도) -->
                         <div class="meta-badges">
                             <span class="badge highlight-country">${countryIcon} ${escapeHtml(countryText)}</span>
                             <span class="badge">📅 ${escapeHtml(movie.release_year || "개봉연도 미상")}</span>
@@ -330,7 +388,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function setLoadingState(isLoading) {
         if (isLoading) {
             submitBtn.disabled = true;
-            submitBtn.querySelector(".btn-text").textContent = "AI가 영화 3편 및 실시간 OTT를 정밀 조회 중입니다...";
+            submitBtn.querySelector(".btn-text").textContent = "AI가 조건에 맞는 영화 3편을 정밀 조회 중입니다...";
             loadingSection.classList.remove("hidden");
         } else {
             submitBtn.disabled = false;

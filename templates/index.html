@@ -107,6 +107,35 @@
                         </select>
                     </div>
 
+                    <!-- 캘린더 개봉 시기 / 기간 선택 (선택) -->
+                    <div class="form-group">
+                        <label for="startDate">개봉 시기 / 출시 기간 <span class="optional">(선택 - 원하는 시기의 영화만 필터링)</span></label>
+                        
+                        <!-- 빠른 시대 선택 버튼 (Preset) -->
+                        <div class="date-preset-group">
+                            <button type="button" class="preset-btn active" data-preset="all">전체 (제한없음)</button>
+                            <button type="button" class="preset-btn" data-preset="latest">최신작 (최근 2년)</button>
+                            <button type="button" class="preset-btn" data-preset="2020s">2020년대</button>
+                            <button type="button" class="preset-btn" data-preset="2010s">2010년대</button>
+                            <button type="button" class="preset-btn" data-preset="2000s">2000년대</button>
+                            <button type="button" class="preset-btn" data-preset="classic">90년대 이전 (고전명작)</button>
+                        </div>
+
+                        <!-- 캘린더 직접 선택 영역 -->
+                        <div class="date-range-wrapper">
+                            <div class="date-input-box">
+                                <span class="date-label">📅 시작일:</span>
+                                <input type="date" id="startDate" name="startDate">
+                            </div>
+                            <span class="date-separator">~</span>
+                            <div class="date-input-box">
+                                <span class="date-label">📅 종료일:</span>
+                                <input type="date" id="endDate" name="endDate">
+                            </div>
+                            <button type="button" id="resetDateBtn" class="reset-date-btn" title="날짜 초기화">✕ 초기화</button>
+                        </div>
+                    </div>
+
                     <!-- 제출 버튼 -->
                     <button type="submit" id="submitBtn" class="btn btn-primary">
                         <span class="btn-text">AI 맞춤 영화 3편 추천받기</span>
@@ -118,7 +147,7 @@
             <section id="loadingSection" class="card loading-card hidden">
                 <div class="spinner"></div>
                 <h3 class="loading-title">AI가 최적의 영화 3편을 큐레이션하고 있습니다...</h3>
-                <p class="loading-desc">국내/해외 국적 기준을 철저히 검증하고, 최신 포스터와 OTT 정보를 실시간 조회 중입니다.</p>
+                <p class="loading-desc">선택하신 개봉 시기와 국적 기준을 철저히 검증하고, 최신 포스터와 OTT 정보를 실시간 조회 중입니다.</p>
             </section>
 
             <!-- 3. 에러 알림 카드 -->

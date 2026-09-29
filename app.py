@@ -215,8 +215,7 @@ def service_worker():
 
 @app.route("/recommend", methods=["POST"])
 def recommend():
-    """사용자 조건에 맞춰 영화 3편을 추천하고 정밀 OTT 정보를 결합하여 반환 (보안 인증 필수)"""
-    # 0. 세션 로그인 인증 확인 (비밀번호 미입력 접근 차단)
+    """사용자 조건(캘린더 개봉기간 포함)에 맞춰 영화 3편을 추천하고 정밀 OTT 정보를 결합하여 반환"""
     if not session.get("authenticated"):
         return jsonify({"success": False, "error": "인증되지 않은 접근입니다. 먼저 비밀번호로 로그인해 주세요."}), 401
 
@@ -227,6 +226,8 @@ def recommend():
     keyword = data.get("keyword", "").strip()
     actor = data.get("actor", "").strip()
     runtime = data.get("runtime", "").strip()
+    start_date = data.get("start_date", "").strip()
+    end_date = data.get("end_date", "").strip()
 
     # 1. 백엔드 필수 입력값 유효성 검증
     if not genre:
@@ -266,8 +267,27 @@ def recommend():
 - 오직 1회로 완결되는 한국 장편 극장 영화만 추천해야 합니다.
 """
 
+    # 4. 캘린더 개봉 기간 엄격 필터링 룰 구성
+    date_filter_rule = ""
+    if start_date and end_date:
+        date_filter_rule = f"""
+[🚨 절대 규칙 3: 개봉 시기 / 출시 기간 엄격 제한]
+- 반드시 {start_date} ~ {end_date} 사이에 극장 개봉(출시)된 영화만 3편 추천하세요.
+- 이 개봉 기간을 벗어난 연도에 나온 영화는 단 1편도 추천해서는 안 됩니다.
+"""
+    elif start_date:
+        date_filter_rule = f"""
+[🚨 절대 규칙 3: 개봉 시기 / 출시 기간 엄격 제한]
+- 반드시 {start_date} 이후에 개봉한 최신 영화만 3편 추천하세요.
+"""
+    elif end_date:
+        date_filter_rule = f"""
+[🚨 절대 규칙 3: 개봉 시기 / 출시 기간 엄격 제한]
+- 반드시 {end_date} 이전에 개봉한 영화만 3편 추천하세요.
+"""
+
     prompt = f"""
-당신은 영화의 국적과 포맷을 매우 엄격하게 구분하는 최고 수준의 전문 영화 큐레이터입니다.
+당신은 영화의 국적, 포맷, 개봉연도를 매우 정밀하게 검증하는 최고 수준의 전문 영화 큐레이터입니다.
 사용자의 아래 요청 조건을 분석하여, 조건에 100% 부합하는 서로 다른 3편의 영화를 엄선해 주세요.
 
 [사용자 요청 조건]
@@ -276,8 +296,10 @@ def recommend():
 - 원하는 분위기/스토리 키워드: {keyword}
 - 선호하는 배우: {actor if actor else '상관없음'}
 - 희망 상영시간: {runtime if runtime else '상관없음'}
+- 희망 개봉기간: {f'{start_date} ~ {end_date}' if (start_date or end_date) else '제한없음'}
 
 {origin_strict_rule}
+{date_filter_rule}
 
 반드시 아래와 같은 JSON 배열 형식으로만 응답해 주세요 (총 3개의 영화 객체):
 [
