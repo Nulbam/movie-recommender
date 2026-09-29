@@ -2,6 +2,7 @@ import os
 import json
 import re
 import logging
+import urllib.parse
 import requests
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify
@@ -72,44 +73,104 @@ def search_poster_serper(movie_title, release_year=""):
     return DEFAULT_POSTER
 
 
-def search_ott_serper(movie_title):
-    """Serper Search API를 사용해 영화를 감상할 수 있는 국내 스트리밍 OTT 플랫폼을 실시간 검색합니다."""
+def search_ott_realtime(movie_title):
+    """
+    대한민국 공식 OTT 스트리밍 데이터(JustWatch & 키노라이츠)를 실시간 검색하여
+    실제로 스트리밍 서비스 중인 OTT 목록과 공식 확인 링크를 정확하게 추출합니다.
+    """
+    encoded_title = urllib.parse.quote(movie_title)
+    kinolights_url = f"https://m.kinolights.com/search?keyword={encoded_title}"
+    justwatch_url = f"https://www.justwatch.com/kr/%EA%B2%80%EC%83%89?q={encoded_title}"
+
     serper_key = get_serper_key()
-    detected_platforms = set()
-    known_platforms = ["넷플릭스", "티빙", "왓챠", "웨이브", "디즈니+", "디즈니플러스", "쿠팡플레이", "애플TV", "시리즈온"]
-
     if not serper_key:
-        return []
+        return {
+            "streaming": [],
+            "rent_buy": [],
+            "kinolights_url": kinolights_url,
+            "justwatch_url": justwatch_url
+        }
 
-    url = "https://google.serper.dev/search"
-    query = f"{movie_title} 영화 스트리밍 OTT 보러가기"
     headers = {
         "X-API-KEY": serper_key,
         "Content-Type": "application/json"
     }
+
     payload = {
-        "q": query,
+        "q": f'"{movie_title}" site:justwatch.com/kr',
         "gl": "kr",
         "hl": "ko",
-        "num": 5
+        "num": 2
+    }
+
+    streaming_platforms = set()
+    rent_buy_platforms = set()
+
+    platform_map = {
+        "netflix": "넷플릭스",
+        "watcha": "왓챠",
+        "tving": "티빙",
+        "wavve": "웨이브",
+        "disney": "디즈니+",
+        "coupang": "쿠팡플레이",
+        "apple tv": "애플TV+",
+        "series on": "시리즈온"
     }
 
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=5)
+        response = requests.post("https://google.serper.dev/search", headers=headers, json=payload, timeout=5)
         if response.status_code == 200:
             data = response.json()
-            text_corpus = ""
-            for item in data.get("organic", []):
-                text_corpus += f" {item.get('title', '')} {item.get('snippet', '')} "
+            organic = data.get("organic", [])
+            if organic:
+                item = organic[0]
+                snippet = item.get("snippet", "")
+                link = item.get("link")
+                if link and "justwatch.com/kr" in link:
+                    justwatch_url = link
 
-            for platform in known_platforms:
-                if platform in text_corpus:
-                    clean_name = "디즈니+" if platform == "디즈니플러스" else platform
-                    detected_platforms.add(clean_name)
+                if "스트리밍" in snippet:
+                    streaming_part = snippet.split("스트리밍")[0].lower()
+                    for key, name in platform_map.items():
+                        if key in streaming_part:
+                            streaming_platforms.add(name)
+
+                if "대여" in snippet or "구매" in snippet:
+                    for key, name in platform_map.items():
+                        if key in snippet.lower() and name not in streaming_platforms:
+                            rent_buy_platforms.add(name)
+
     except Exception as e:
-        logger.error(f"Serper OTT 검색 실패: {e}")
+        logger.error(f"JustWatch 실시간 OTT 검색 실패: {e}")
 
-    return list(detected_platforms)
+    if not streaming_platforms:
+        try:
+            payload_kino = {
+                "q": f'"{movie_title}" site:kinolights.com',
+                "gl": "kr",
+                "hl": "ko",
+                "num": 2
+            }
+            resp_kino = requests.post("https://google.serper.dev/search", headers=headers, json=payload_kino, timeout=5)
+            if resp_kino.status_code == 200:
+                data_kino = resp_kino.json()
+                for item in data_kino.get("organic", []):
+                    snip = item.get("snippet", "").lower()
+                    link = item.get("link", "")
+                    if "kinolights.com/title" in link:
+                        kinolights_url = link
+                    for key, name in platform_map.items():
+                        if key in snip and ("스트리밍" in snip or "보러가기" in snip):
+                            streaming_platforms.add(name)
+        except Exception as e:
+            logger.error(f"키노라이츠 실시간 OTT 검색 실패: {e}")
+
+    return {
+        "streaming": list(streaming_platforms),
+        "rent_buy": list(rent_buy_platforms),
+        "kinolights_url": kinolights_url,
+        "justwatch_url": justwatch_url
+    }
 
 
 @app.route("/")
@@ -120,7 +181,7 @@ def index():
 
 @app.route("/recommend", methods=["POST"])
 def recommend():
-    """사용자 조건에 맞춰 영화를 추천하고 포스터 및 OTT 정보를 결합하여 반환"""
+    """사용자 조건에 맞춰 영화 3편을 추천하고 정밀 OTT 정보를 결합하여 반환"""
     data = request.get_json(silent=True) or {}
 
     genre = data.get("genre", "").strip()
@@ -145,35 +206,59 @@ def recommend():
             "error": ".env 파일에 올바른 GEMINI_API_KEY가 설정되어 있지 않습니다."
         }), 500
 
-    # 3. AI 프롬프트 구성
+    # 3. 엄격한 국내/해외 분리 및 영화(드라마 제외) 필터링 룰 설정
+    if origin == "해외":
+        origin_strict_rule = """
+[🚨 절대 규칙 1: 100% 순수 해외 영화만 추천할 것 (국내/한국 작품 엄격 배제)]
+- 추천하는 3편 모두 반드시 미국(할리우드), 영국, 프랑스, 일본, 독일 등 '외국'에서 제작된 순수 해외 영화(외화)여야 합니다.
+- 한국(대한민국) 영화, 한국 감독/제작사 영화, 한국어가 주 언어인 영화, K-콘텐츠는 단 1편도 포함해서는 안 됩니다. (절대 금지)
+
+[🚨 절대 규칙 2: 오직 '단편/장편 영화(Feature Film)'만 추천할 것 (드라마 배제)]
+- TV 시리즈, 넷플릭스/디즈니+ 오리지널 드라마, 시즌제 드라마, 미니시리즈는 절대 포함하지 마세요.
+- 오직 러닝타임 1회로 완결되는 극장용 영화만 추천해야 합니다.
+"""
+    else:
+        origin_strict_rule = """
+[🚨 절대 규칙 1: 100% 순수 대한민국(한국) 영화만 추천할 것]
+- 추천하는 3편 모두 반드시 대한민국에서 제작된 '한국 영화'여야 합니다.
+- 해외 영화(외화), 외국 영화, 외국 합작 작품은 단 1편도 포함하지 마세요.
+
+[🚨 절대 규칙 2: 오직 '극장용 한국 영화'만 추천할 것 (드라마 배제)]
+- TV 드라마, 웹드라마, OTT 오리지널 시리즈물은 절대 포함하지 마세요.
+- 오직 1회로 완결되는 한국 장편 극장 영화만 추천해야 합니다.
+"""
+
     prompt = f"""
-당신은 전 세계의 모든 영화를 꿰뚫고 있는 전문 영화 큐레이터입니다.
-사용자의 아래 조건에 가장 잘 부합하는 최고의 영화 단 1편을 추천해 주세요.
+당신은 영화의 국적과 포맷을 매우 엄격하게 구분하는 최고 수준의 전문 영화 큐레이터입니다.
+사용자의 아래 요청 조건을 분석하여, 조건에 100% 부합하는 서로 다른 3편의 영화를 엄선해 주세요.
 
 [사용자 요청 조건]
+- 선택 구분: {origin} 영화 (반드시 {origin} 영화만 추천)
 - 장르: {genre}
-- 구분: {origin} 영화
-- 원하는 분위기/줄거리 키워드: {keyword}
+- 원하는 분위기/스토리 키워드: {keyword}
 - 선호하는 배우: {actor if actor else '상관없음'}
 - 희망 상영시간: {runtime if runtime else '상관없음'}
 
-반드시 아래 JSON 형식으로만 순수 JSON 문자열을 응답해 주세요:
-{{
-  "title": "영화 공식 한국어 제목",
-  "original_title": "영화 원제",
-  "release_year": "개봉연도 (예: 2019)",
-  "genre": "세부 장르",
-  "director": "감독 이름",
-  "cast": "주요 출연진 목록 (쉼표로 구분, 예: 송강호, 이선균, 조여정)",
-  "runtime": "상영시간 (예: 132분)",
-  "plot": "흥미진진하고 몰입감 넘치는 3~4문장의 상세 줄거리 요약",
-  "recommendation_reason": "사용자의 조건에 이 영화를 강력 추천하는 이유 1~2문장",
-  "ott_platforms": ["넷플릭스", "티빙"]
-}}
+{origin_strict_rule}
+
+반드시 아래와 같은 JSON 배열 형식으로만 응답해 주세요 (총 3개의 영화 객체):
+[
+  {{
+    "title": "영화 공식 한국어 제목",
+    "original_title": "영화 원제 (영문/원어)",
+    "production_country": "제작 국가 (예: 미국, 영국, 일본, 한국 등)",
+    "release_year": "개봉연도 (예: 2019)",
+    "genre": "세부 장르",
+    "director": "감독 이름",
+    "cast": "주요 출연진 목록 (쉼표 구분)",
+    "runtime": "상영시간 (예: 132분)",
+    "plot": "흥미진진하고 몰입감 넘치는 3~4문장의 상세 줄거리 요약",
+    "recommendation_reason": "이 영화를 특히 추천하는 이유 1~2문장"
+  }}
+]
 """
 
     try:
-        # 우선 지정 모델: gemini-3.5-flash-lite (호환성 fallback 목록 포함)
         ai_result = None
         target_models = [
             "gemini-3.5-flash-lite",
@@ -201,44 +286,45 @@ def recommend():
         if not ai_result:
             raise Exception("사용 가능한 Gemini AI 모델을 호출할 수 없습니다.")
 
-        # JSON 파싱
         clean_json_str = ai_result.strip()
         if clean_json_str.startswith("```"):
             clean_json_str = re.sub(r"^```(?:json)?\n", "", clean_json_str)
             clean_json_str = re.sub(r"\n```$", "", clean_json_str)
 
-        movie_info = json.loads(clean_json_str)
+        movies_data = json.loads(clean_json_str)
+        if isinstance(movies_data, dict):
+            movies_data = [movies_data]
 
-        # 4. Serper API 실시간 검색 보강 (포스터 이미지 + OTT 정보)
-        movie_title = movie_info.get("title", "")
-        release_year = movie_info.get("release_year", "")
+        # 4. 각 영화에 대해 실시간 포스터 및 100% 실시간 OTT 검증 수행
+        enriched_movies = []
+        for idx, movie_info in enumerate(movies_data[:3], start=1):
+            movie_title = movie_info.get("title", "")
+            release_year = movie_info.get("release_year", "")
+            production_country = movie_info.get("production_country", "해외" if origin == "해외" else "대한민국")
 
-        # 포스터 이미지 검색
-        poster_url = search_poster_serper(movie_title, release_year)
+            # 포스터 이미지 검색
+            poster_url = search_poster_serper(movie_title, release_year)
 
-        # 실시간 OTT 검색 결과와 Gemini 응답 결합 (중복 제거)
-        serper_otts = search_ott_serper(movie_title)
-        gemini_otts = movie_info.get("ott_platforms", [])
-        all_otts = list(set(serper_otts + gemini_otts))
-        if not all_otts:
-            all_otts = ["극장 / VOD 서비스"]
+            # 정밀 실시간 OTT 정보 검색
+            ott_info = search_ott_realtime(movie_title)
 
-        # 최종 추천 카드 데이터 구조화
-        result = {
-            "title": movie_title,
-            "original_title": movie_info.get("original_title", ""),
-            "release_year": release_year,
-            "genre": movie_info.get("genre", genre),
-            "director": movie_info.get("director", "정보 없음"),
-            "cast": movie_info.get("cast", "정보 없음"),
-            "runtime": movie_info.get("runtime", "정보 없음"),
-            "plot": movie_info.get("plot", "줄거리 정보가 제공되지 않았습니다."),
-            "recommendation_reason": movie_info.get("recommendation_reason", "조건에 꼭 맞는 영화입니다."),
-            "poster_url": poster_url,
-            "ott_platforms": all_otts
-        }
+            enriched_movies.append({
+                "rank": idx,
+                "title": movie_title,
+                "original_title": movie_info.get("original_title", ""),
+                "production_country": production_country,
+                "release_year": release_year,
+                "genre": movie_info.get("genre", genre),
+                "director": movie_info.get("director", "정보 없음"),
+                "cast": movie_info.get("cast", "정보 없음"),
+                "runtime": movie_info.get("runtime", "정보 없음"),
+                "plot": movie_info.get("plot", "줄거리 정보가 제공되지 않았습니다."),
+                "recommendation_reason": movie_info.get("recommendation_reason", "조건에 꼭 맞는 영화입니다."),
+                "poster_url": poster_url,
+                "ott_info": ott_info
+            })
 
-        return jsonify({"success": True, "movie": result})
+        return jsonify({"success": True, "movies": enriched_movies})
 
     except Exception as e:
         logger.error(f"추천 처리 중 오류 발생: {e}", exc_info=True)
