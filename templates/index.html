@@ -55,11 +55,17 @@
                     <section class="card form-card sticky-form">
                         <h2 class="section-title">🔍 추천 조건 입력</h2>
                         <form id="recommendForm" novalidate>
-                            <!-- 장르 선택 (필수) -->
+                            <!-- 1. 원하는 줄거리 / 내용 키워드 (맨 위 배치, 필수) -->
                             <div class="form-group">
-                                <label for="genre">영화 장르 <span class="required">*</span></label>
-                                <select id="genre" name="genre" required>
-                                    <option value="">장르를 선택해 주세요</option>
+                                <label for="keyword">원하는 스토리 / 분위기 <span class="required">*</span></label>
+                                <textarea id="keyword" name="keyword" rows="3" placeholder="예: 반전이 충격적인 이야기, 타임루프, 따뜻한 가족 힐링 스토리, 비 오는 날 혼자 보기 좋은 감성 등" required></textarea>
+                            </div>
+
+                            <!-- 2. 영화 장르 (선택) -->
+                            <div class="form-group">
+                                <label for="genre">영화 장르 <span class="optional">(선택)</span></label>
+                                <select id="genre" name="genre">
+                                    <option value="">장르 상관없음 (전체)</option>
                                     <option value="SF / 판타지">SF / 판타지</option>
                                     <option value="액션 / 어드벤처">액션 / 어드벤처</option>
                                     <option value="스릴러 / 미스터리 / 서스펜스">스릴러 / 미스터리 / 서스펜스</option>
@@ -73,25 +79,23 @@
                                 </select>
                             </div>
 
-                            <!-- 국내 / 해외 구분 (필수) -->
+                            <!-- 3. 국내 / 해외 구분 (선택) -->
                             <div class="form-group">
-                                <label>국내 / 해외 구분 <span class="required">*</span></label>
+                                <label>국내 / 해외 구분 <span class="optional">(선택)</span></label>
                                 <div class="radio-group">
                                     <label class="radio-label">
-                                        <input type="radio" name="origin" value="국내" checked>
-                                        <span>🇰🇷 국내 영화</span>
+                                        <input type="radio" name="origin" value="전체" checked>
+                                        <span>🌐 전체</span>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="origin" value="국내">
+                                        <span>🇰🇷 국내</span>
                                     </label>
                                     <label class="radio-label">
                                         <input type="radio" name="origin" value="해외">
-                                        <span>🌍 해외 영화</span>
+                                        <span>🌍 해외</span>
                                     </label>
                                 </div>
-                            </div>
-
-                            <!-- 원하는 줄거리 / 내용 키워드 (필수) -->
-                            <div class="form-group">
-                                <label for="keyword">원하는 스토리 / 분위기 <span class="required">*</span></label>
-                                <textarea id="keyword" name="keyword" rows="3" placeholder="예: 반전이 충격적인 이야기, 타임루프, 따뜻한 가족 힐링 스토리 등" required></textarea>
                             </div>
 
                             <!-- 선호 배우 (선택) -->
@@ -125,18 +129,22 @@
                                     <button type="button" class="preset-btn" data-preset="classic">고전</button>
                                 </div>
 
-                                <!-- 캘린더 직접 선택 영역 -->
+                                <!-- 캘린더 직접 선택 영역 (카드 내부 맞춤 2열 그리드) -->
                                 <div class="date-range-wrapper">
-                                    <div class="date-input-box">
-                                        <span class="date-label">시작:</span>
-                                        <input type="date" id="startDate" name="startDate">
+                                    <div class="date-header-row">
+                                        <span class="date-custom-label">📅 직접 기간 지정</span>
+                                        <button type="button" id="resetDateBtn" class="reset-date-btn" title="날짜 초기화">✕ 초기화</button>
                                     </div>
-                                    <span class="date-separator">~</span>
-                                    <div class="date-input-box">
-                                        <span class="date-label">종료:</span>
-                                        <input type="date" id="endDate" name="endDate">
+                                    <div class="date-grid">
+                                        <div class="date-input-field">
+                                            <label for="startDate" class="date-sublabel">시작일</label>
+                                            <input type="date" id="startDate" name="startDate">
+                                        </div>
+                                        <div class="date-input-field">
+                                            <label for="endDate" class="date-sublabel">종료일</label>
+                                            <input type="date" id="endDate" name="endDate">
+                                        </div>
                                     </div>
-                                    <button type="button" id="resetDateBtn" class="reset-date-btn" title="날짜 초기화">✕</button>
                                 </div>
                             </div>
 
@@ -159,8 +167,8 @@
                         </div>
                         <h3 class="empty-title">나만을 위한 인생 영화를 찾아보세요</h3>
                         <p class="empty-desc">
-                            왼쪽에서 원하는 <strong>장르, 스토리 키워드, 개봉 시기</strong>를 선택하고<br>
-                            <strong>[AI 맞춤 영화 3편 추천받기]</strong> 버튼을 누르면 이 자리에 맞춤 영화가 나타납니다!
+                            왼쪽에서 원하는 <strong>스토리나 분위기</strong>를 적고<br>
+                            <strong>[AI 맞춤 영화 3편 추천받기]</strong> 버튼을 누르면 이 자리에 인생 영화가 나타납니다!
                         </p>
                         <div class="empty-features">
                             <div class="feature-tag">🎬 Gemini 3.5 AI 분석</div>

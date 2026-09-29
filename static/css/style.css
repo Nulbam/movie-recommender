@@ -257,6 +257,11 @@ body {
 
 .dashboard-left {
     width: 100%;
+    min-width: 0;
+}
+
+.form-card {
+    overflow: hidden;
 }
 
 .sticky-form {
@@ -355,25 +360,27 @@ textarea {
     min-height: 75px;
 }
 
-/* 라디오 버튼 그룹 */
+/* 라디오 버튼 그룹 (3개 항목 대응) */
 .radio-group {
     display: flex;
-    gap: 12px;
+    gap: 8px;
 }
 
 .radio-label {
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
+    gap: 6px;
     background-color: var(--bg-input);
-    padding: 10px 14px;
+    padding: 9px 8px;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: 0.86rem;
     transition: var(--transition);
     flex: 1;
     font-weight: 500;
+    white-space: nowrap;
 }
 
 .radio-label:hover {
@@ -419,49 +426,83 @@ textarea {
     font-weight: 700;
 }
 
+/* 캘린더 직접 선택 카드 (2열 그리드 구조) */
 .date-range-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background-color: rgba(15, 23, 42, 0.5);
-    padding: 8px 12px;
+    background-color: rgba(15, 23, 42, 0.6);
+    padding: 12px;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
+    width: 100%;
+    box-sizing: border-box;
 }
 
-.date-input-box {
+.date-header-row {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 6px;
-    flex: 1;
+    margin-bottom: 8px;
 }
 
-.date-label {
+.date-custom-label {
     font-size: 0.8rem;
     color: var(--text-secondary);
-    white-space: nowrap;
-}
-
-.date-separator {
-    color: var(--text-muted);
-    font-weight: bold;
+    font-weight: 600;
 }
 
 .reset-date-btn {
-    background-color: transparent;
+    background-color: var(--bg-input);
     border: 1px solid var(--border-color);
     color: var(--text-muted);
-    padding: 6px 10px;
+    padding: 3px 8px;
     border-radius: var(--radius-sm);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     cursor: pointer;
-    white-space: nowrap;
     transition: var(--transition);
 }
 
 .reset-date-btn:hover {
     border-color: var(--accent-red);
     color: var(--accent-red);
+}
+
+.date-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+}
+
+.date-input-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.date-sublabel {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.date-input-field input[type="date"] {
+    width: 100%;
+    min-width: 0;
+    padding: 7px 8px;
+    font-size: 0.8rem;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    color-scheme: dark;
+    outline: none;
+}
+
+.date-input-field input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    filter: invert(0.8);
+    margin-left: 0;
+    padding: 0;
 }
 
 /* 제출 버튼 */
@@ -997,8 +1038,8 @@ textarea {
     }
 
     .radio-group {
-        flex-direction: column;
-        gap: 8px;
+        flex-direction: row;
+        gap: 6px;
     }
 
     .ott-verify-actions {

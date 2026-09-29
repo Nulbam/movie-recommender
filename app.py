@@ -229,13 +229,9 @@ def recommend():
     start_date = data.get("start_date", "").strip()
     end_date = data.get("end_date", "").strip()
 
-    # 1. 백엔드 필수 입력값 유효성 검증
-    if not genre:
-        return jsonify({"success": False, "error": "영화 장르를 선택해 주세요."}), 400
-    if not origin:
-        return jsonify({"success": False, "error": "국내영화/해외영화 구분을 선택해 주세요."}), 400
+    # 1. 백엔드 필수 입력값 유효성 검증 (원하는 분위기/스토리는 필수, 장르 및 국적은 선택사항)
     if not keyword:
-        return jsonify({"success": False, "error": "원하는 줄거리나 내용 키워드를 입력해 주세요."}), 400
+        return jsonify({"success": False, "error": "원하는 스토리나 분위기 키워드를 입력해 주세요."}), 400
 
     # 2. Gemini 클라이언트 준비
     client = get_gemini_client()
@@ -245,8 +241,9 @@ def recommend():
             "error": ".env 파일에 올바른 GEMINI_API_KEY가 설정되어 있지 않습니다."
         }), 500
 
-    # 3. 엄격한 국내/해외 분리 및 영화(드라마 제외) 필터링 룰 설정
+    # 3. 국내 / 해외 / 전체 구분 필터링 룰 설정
     if origin == "해외":
+        origin_text = "해외 영화 (외화)"
         origin_strict_rule = """
 [🚨 절대 규칙 1: 100% 순수 해외 영화만 추천할 것 (국내/한국 작품 엄격 배제)]
 - 추천하는 3편 모두 반드시 미국(할리우드), 영국, 프랑스, 일본, 독일 등 '외국'에서 제작된 순수 해외 영화(외화)여야 합니다.
@@ -256,7 +253,8 @@ def recommend():
 - TV 시리즈, 넷플릭스/디즈니+ 오리지널 드라마, 시즌제 드라마, 미니시리즈는 절대 포함하지 마세요.
 - 오직 러닝타임 1회로 완결되는 극장용 영화만 추천해야 합니다.
 """
-    else:
+    elif origin == "국내":
+        origin_text = "국내 영화 (한국 영화)"
         origin_strict_rule = """
 [🚨 절대 규칙 1: 100% 순수 대한민국(한국) 영화만 추천할 것]
 - 추천하는 3편 모두 반드시 대한민국에서 제작된 '한국 영화'여야 합니다.
@@ -265,6 +263,17 @@ def recommend():
 [🚨 절대 규칙 2: 오직 '극장용 한국 영화'만 추천할 것 (드라마 배제)]
 - TV 드라마, 웹드라마, OTT 오리지널 시리즈물은 절대 포함하지 마세요.
 - 오직 1회로 완결되는 한국 장편 극장 영화만 추천해야 합니다.
+"""
+    else:
+        origin_text = "전체 (국내 및 해외 영화 모두 포함)"
+        origin_strict_rule = """
+[🚨 절대 규칙 1: 제작 국가 무관 (국내 영화 및 해외 영화 모두 자유롭게 추천 가능)]
+- 대한민국 영화와 해외 영화 구분 없이, 사용자가 원하는 스토리/분위기에 가장 잘 어울리는 최고의 명작 영화 3편을 추천하세요.
+- 한국 영화와 해외 영화가 골고루 섞여도 좋습니다.
+
+[🚨 절대 규칙 2: 오직 '단편/장편 영화(Feature Film)'만 추천할 것 (드라마 배제)]
+- TV 시리즈, 드라마, OTT 오리지널 시리즈물은 절대 포함하지 마세요.
+- 오직 러닝타임 1회로 완결되는 극장용 영화만 추천해야 합니다.
 """
 
     # 4. 캘린더 개봉 기간 엄격 필터링 룰 구성
@@ -291,9 +300,9 @@ def recommend():
 사용자의 아래 요청 조건을 분석하여, 조건에 100% 부합하는 서로 다른 3편의 영화를 엄선해 주세요.
 
 [사용자 요청 조건]
-- 선택 구분: {origin} 영화 (반드시 {origin} 영화만 추천)
-- 장르: {genre}
-- 원하는 분위기/스토리 키워드: {keyword}
+- 원하는 분위기 / 스토리: {keyword}
+- 영화 장르: {genre if genre else '상관없음 (모든 장르 허용)'}
+- 국가 구분: {origin_text}
 - 선호하는 배우: {actor if actor else '상관없음'}
 - 희망 상영시간: {runtime if runtime else '상관없음'}
 - 희망 개봉기간: {f'{start_date} ~ {end_date}' if (start_date or end_date) else '제한없음'}

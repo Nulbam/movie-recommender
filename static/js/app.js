@@ -115,28 +115,18 @@ document.addEventListener("DOMContentLoaded", () => {
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
 
-        const genre = genreInput.value.trim();
-        const originInput = document.querySelector('input[name="origin"]:checked');
-        const origin = originInput ? originInput.value : "";
         const keyword = keywordInput.value.trim();
+        const genre = genreInput ? genreInput.value.trim() : "";
+        const originInput = document.querySelector('input[name="origin"]:checked');
+        const origin = originInput ? originInput.value : "전체";
         const actor = actorInput.value.trim();
         const runtime = runtimeInput.value.trim();
         const startDate = startDateInput.value.trim();
         const endDate = endDateInput.value.trim();
 
-        if (!genre) {
-            alert("영화 장르를 선택해 주세요!");
-            genreInput.focus();
-            return;
-        }
-
-        if (!origin) {
-            alert("국내영화 또는 해외영화를 선택해 주세요!");
-            return;
-        }
-
+        // 필수 검증: 원하는 스토리나 분위기는 필수!
         if (!keyword) {
-            alert("원하는 영화의 스토리나 분위기 키워드를 입력해 주세요!");
+            alert("원하는 영화의 스토리나 분위기를 입력해 주세요!");
             keywordInput.focus();
             return;
         }
