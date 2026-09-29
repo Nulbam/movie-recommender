@@ -398,6 +398,35 @@ document.addEventListener("DOMContentLoaded", () => {
             else if (countryText.includes("프랑스")) countryIcon = "🇫🇷";
             else if (countryText.includes("독일")) countryIcon = "🇩🇪";
 
+            // IMDb & Rotten Tomatoes 해외 평점 사이트 검색용 공식 영문 제목 우선 활용
+            const englishSearchTitle = movie.english_title || movie.original_title || movie.title || "";
+            const yearParam = movie.release_year ? ` ${movie.release_year}` : "";
+            const imdbUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(englishSearchTitle + yearParam)}`;
+            const rottenUrl = `https://www.rottentomatoes.com/search?search=${encodeURIComponent(englishSearchTitle)}`;
+
+            let imdbText = movie.imdb_rating || "N/A";
+            if (imdbText !== "N/A" && !imdbText.includes("/10") && !isNaN(parseFloat(imdbText))) {
+                imdbText = `${imdbText} / 10`;
+            }
+
+            let rottenText = movie.rotten_tomatoes || "N/A";
+            if (rottenText !== "N/A" && !rottenText.includes("%") && !isNaN(parseFloat(rottenText))) {
+                rottenText = `${rottenText}%`;
+            }
+
+            // 부제목 표시 (영문명 및 원제 병기)
+            let subTitleText = "";
+            const subParts = [];
+            if (movie.english_title && movie.english_title !== movie.title) {
+                subParts.push(movie.english_title);
+            }
+            if (movie.original_title && movie.original_title !== movie.title && movie.original_title !== movie.english_title) {
+                subParts.push(movie.original_title);
+            }
+            if (subParts.length > 0) {
+                subTitleText = `(${subParts.join(" • ")})`;
+            }
+
             // 개별 영화 카드 조립
             card.innerHTML = `
                 <div class="split-view">
@@ -417,7 +446,21 @@ document.addEventListener("DOMContentLoaded", () => {
                         <div class="movie-header">
                             ${hasImage ? '<span class="image-analyzed-badge">📸 이미지 분위기 매칭</span>' : ''}
                             <h2 class="movie-title">${escapeHtml(movie.title || "제목 미상")}</h2>
-                            ${movie.original_title ? `<p class="movie-original-title">(${escapeHtml(movie.original_title)})</p>` : ""}
+                            ${subTitleText ? `<p class="movie-original-title">${escapeHtml(subTitleText)}</p>` : ""}
+                        </div>
+
+                        <!-- 글로벌 공식 평점 배지 (IMDb & Rotten Tomatoes) -->
+                        <div class="ratings-container">
+                            <a href="${escapeHtml(imdbUrl)}" target="_blank" rel="noopener noreferrer" class="rating-badge rating-imdb" title="IMDb에서 영문 '${escapeHtml(englishSearchTitle)}' 평점 및 유저 리뷰 확인 ↗">
+                                <span class="rating-logo imdb-logo">IMDb</span>
+                                <span class="rating-score">⭐ ${escapeHtml(imdbText)}</span>
+                                <span class="rating-link-arrow">↗</span>
+                            </a>
+                            <a href="${escapeHtml(rottenUrl)}" target="_blank" rel="noopener noreferrer" class="rating-badge rating-rotten" title="Rotten Tomatoes에서 영문 '${escapeHtml(englishSearchTitle)}' 신선도 지수 확인 ↗">
+                                <span class="rating-logo rotten-logo">🍅 Rotten Tomatoes</span>
+                                <span class="rating-score">${escapeHtml(rottenText)}</span>
+                                <span class="rating-link-arrow">↗</span>
+                            </a>
                         </div>
 
                         <!-- 메타 정보 배지 (제작 국가 & 개봉연도) -->

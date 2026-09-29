@@ -917,6 +917,88 @@ textarea {
     margin-top: 3px;
 }
 
+/* 글로벌 평점 뱃지 (IMDb & Rotten Tomatoes) */
+.ratings-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: -4px;
+}
+
+.rating-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    text-decoration: none;
+    font-size: 0.84rem;
+    transition: var(--transition);
+}
+
+.rating-badge:hover {
+    transform: translateY(-2px);
+}
+
+/* IMDb 뱃지 */
+.rating-imdb {
+    background-color: rgba(245, 197, 24, 0.12);
+    border: 1px solid rgba(245, 197, 24, 0.35);
+    color: #f8fafc;
+}
+
+.rating-imdb:hover {
+    background-color: rgba(245, 197, 24, 0.22);
+    border-color: #f5c518;
+    box-shadow: 0 4px 14px rgba(245, 197, 24, 0.25);
+}
+
+.imdb-logo {
+    background-color: #f5c518;
+    color: #000000;
+    font-weight: 900;
+    font-size: 0.72rem;
+    padding: 2px 5px;
+    border-radius: 4px;
+    letter-spacing: -0.3px;
+    line-height: 1;
+}
+
+/* Rotten Tomatoes 뱃지 */
+.rating-rotten {
+    background-color: rgba(250, 50, 10, 0.12);
+    border: 1px solid rgba(250, 50, 10, 0.35);
+    color: #f8fafc;
+}
+
+.rating-rotten:hover {
+    background-color: rgba(250, 50, 10, 0.22);
+    border-color: #fa320a;
+    box-shadow: 0 4px 14px rgba(250, 50, 10, 0.25);
+}
+
+.rotten-logo {
+    font-weight: 700;
+    color: #ff5233;
+    font-size: 0.82rem;
+}
+
+.rating-score {
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.rating-link-arrow {
+    font-size: 0.75rem;
+    opacity: 0.6;
+    margin-left: 2px;
+}
+
+.rating-badge:hover .rating-link-arrow {
+    opacity: 1;
+}
+
 /* 메타 뱃지 */
 .meta-badges {
     display: flex;

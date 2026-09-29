@@ -324,6 +324,13 @@ def recommend():
 - 각 영화의 recommendation_reason(추천 이유)에 사용자가 업로드한 이미지의 어떤 시각적 분위기나 상황(예: '비 오는 푸른빛 골목의 차분한 분위기', '따뜻한 노을빛 색감과 낭만', '쓸쓸하고 고독한 감성', '청량하고 싱그러운 여름 풍경' 등)과 영화가 왜 어울리는지 구체적으로 연결지어 작성해 주세요.
 """
 
+    # 7. 공식 영문 제목(해외 평점 사이트 검색용) 및 평점 룰 구성
+    rating_rule = """
+[🚨 절대 규칙 5: 공식 영문 제목(english_title) 및 IMDb / Rotten Tomatoes 평점 정밀 기재]
+- 한국 영화 및 비영어권 영화(일본, 프랑스, 독일, 홍콩 등)라도 반드시 미국/해외 사이트(IMDb, Rotten Tomatoes)에 공식 등록되어 전 세계적으로 검색되는 '공식 영문 개봉 제목(english_title)'을 정확한 영문 알파벳으로 번역/표기하세요. (예: '기생충' -> 'Parasite', '아가씨' -> 'The Handmaiden', '범죄도시' -> 'The Outlaws', '센과 치히로의 행방불명' -> 'Spirited Away', '올드보이' -> 'Oldboy')
+- 이 공식 영문 제목을 기준으로 공식 IMDb 평점(10점 만점, 예: '8.5')과 로튼 토마토 신선도 지수(Tomatometer, 예: '96%')를 정확히 기재하세요. (공식 평점이 미등록된 독립영화나 신작은 'N/A'로 표기)
+"""
+
     prompt = f"""
 당신은 영화의 국적, 포맷, 개봉연도, 그리고 첨부된 이미지의 시각적 미장센을 매우 정밀하게 검증하는 최고 수준의 전문 영화 큐레이터입니다.
 사용자의 아래 요청 조건{'(및 첨부된 분위기 사진)' if image_part else ''}을 분석하여, 조건에 100% 부합하는 서로 다른 3편의 영화를 엄선해 주세요.
@@ -340,18 +347,22 @@ def recommend():
 {origin_strict_rule}
 {date_filter_rule}
 {image_analysis_rule}
+{rating_rule}
 
 반드시 아래와 같은 JSON 배열 형식으로만 응답해 주세요 (총 3개의 영화 객체):
 [
   {{
     "title": "영화 공식 한국어 제목",
-    "original_title": "영화 원제 (영문/원어)",
+    "original_title": "영화 제작국가 원제 (예: 기생충, 千と千尋の神隠し, Inception)",
+    "english_title": "공식 영문 제목 (IMDb / Rotten Tomatoes 검색용 영문 알파벳 표기, 예: Parasite, Spirited Away, Inception)",
     "production_country": "제작 국가 (예: 미국, 영국, 일본, 한국 등)",
     "release_year": "개봉연도 (예: 2019)",
     "genre": "세부 장르",
     "director": "감독 이름",
     "cast": "주요 출연진 목록 (쉼표 구분)",
     "runtime": "상영시간 (예: 132분)",
+    "imdb_rating": "공식 IMDb 평점 (예: 8.6/10 또는 8.6)",
+    "rotten_tomatoes": "로튼 토마토 신선도 지수 (예: 96% 또는 96%)",
     "plot": "흥미진진하고 몰입감 넘치는 3~4문장의 상세 줄거리 요약",
     "recommendation_reason": "이 영화를 특히 추천하는 이유 1~2문장"
   }}
@@ -402,6 +413,7 @@ def recommend():
             movie_title = movie_info.get("title", "")
             release_year = movie_info.get("release_year", "")
             production_country = movie_info.get("production_country", "해외" if origin == "해외" else "대한민국")
+            english_title = movie_info.get("english_title") or movie_info.get("original_title") or movie_title
 
             poster_url = search_poster_serper(movie_title, release_year)
             ott_info = search_ott_realtime(movie_title)
@@ -410,12 +422,15 @@ def recommend():
                 "rank": idx,
                 "title": movie_title,
                 "original_title": movie_info.get("original_title", ""),
+                "english_title": english_title,
                 "production_country": production_country,
                 "release_year": release_year,
                 "genre": movie_info.get("genre", genre),
                 "director": movie_info.get("director", "정보 없음"),
                 "cast": movie_info.get("cast", "정보 없음"),
                 "runtime": movie_info.get("runtime", "정보 없음"),
+                "imdb_rating": movie_info.get("imdb_rating", "N/A"),
+                "rotten_tomatoes": movie_info.get("rotten_tomatoes", "N/A"),
                 "plot": movie_info.get("plot", "줄거리 정보가 제공되지 않았습니다."),
                 "recommendation_reason": movie_info.get("recommendation_reason", "조건에 꼭 맞는 영화입니다."),
                 "poster_url": poster_url,
