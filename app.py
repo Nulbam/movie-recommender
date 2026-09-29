@@ -5,6 +5,7 @@ import logging
 import urllib.parse
 import requests
 import base64
+import concurrent.futures
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify, send_from_directory, make_response, session, redirect, url_for
 from google import genai
@@ -216,7 +217,7 @@ def service_worker():
 
 @app.route("/recommend", methods=["POST"])
 def recommend():
-    """사용자 조건(캘린더 개봉기간 포함)에 맞춰 영화 3편을 추천하고 정밀 OTT 정보를 결합하여 반환"""
+    """사용자 조건(캘린더 개봉기간 및 추천 편수 포함)에 맞춰 영화를 추천하고 정밀 OTT 정보를 결합하여 반환"""
     if not session.get("authenticated"):
         return jsonify({"success": False, "error": "인증되지 않은 접근입니다. 먼저 비밀번호로 로그인해 주세요."}), 401
 
@@ -230,6 +231,16 @@ def recommend():
     runtime = data.get("runtime", "").strip()
     start_date = data.get("start_date", "").strip()
     end_date = data.get("end_date", "").strip()
+
+    # 추천 희망 편수 (기본 3편, 최소 1편, 최대 10편 선택 가능)
+    try:
+        count = int(data.get("count", 3))
+        if count < 1:
+            count = 1
+        elif count > 10:
+            count = 10
+    except (ValueError, TypeError):
+        count = 3
 
     # 1. 백엔드 필수 입력값 유효성 검증 (스토리 분위기 텍스트 또는 첨부 이미지 중 하나는 필수)
     if not keyword and not image_data:
@@ -263,9 +274,9 @@ def recommend():
     # 4. 국내 / 해외 / 전체 구분 필터링 룰 설정
     if origin == "해외":
         origin_text = "해외 영화 (외화)"
-        origin_strict_rule = """
+        origin_strict_rule = f"""
 [🚨 절대 규칙 1: 100% 순수 해외 영화만 추천할 것 (국내/한국 작품 엄격 배제)]
-- 추천하는 3편 모두 반드시 미국(할리우드), 영국, 프랑스, 일본, 독일 등 '외국'에서 제작된 순수 해외 영화(외화)여야 합니다.
+- 추천하는 {count}편 모두 반드시 미국(할리우드), 영국, 프랑스, 일본, 독일 등 '외국'에서 제작된 순수 해외 영화(외화)여야 합니다.
 - 한국(대한민국) 영화, 한국 감독/제작사 영화, 한국어가 주 언어인 영화, K-콘텐츠는 단 1편도 포함해서는 안 됩니다. (절대 금지)
 
 [🚨 절대 규칙 2: 오직 '단편/장편 영화(Feature Film)'만 추천할 것 (드라마 배제)]
@@ -274,9 +285,9 @@ def recommend():
 """
     elif origin == "국내":
         origin_text = "국내 영화 (한국 영화)"
-        origin_strict_rule = """
+        origin_strict_rule = f"""
 [🚨 절대 규칙 1: 100% 순수 대한민국(한국) 영화만 추천할 것]
-- 추천하는 3편 모두 반드시 대한민국에서 제작된 '한국 영화'여야 합니다.
+- 추천하는 {count}편 모두 반드시 대한민국에서 제작된 '한국 영화'여야 합니다.
 - 해외 영화(외화), 외국 영화, 외국 합작 작품은 단 1편도 포함하지 마세요.
 
 [🚨 절대 규칙 2: 오직 '극장용 한국 영화'만 추천할 것 (드라마 배제)]
@@ -285,9 +296,9 @@ def recommend():
 """
     else:
         origin_text = "전체 (국내 및 해외 영화 모두 포함)"
-        origin_strict_rule = """
+        origin_strict_rule = f"""
 [🚨 절대 규칙 1: 제작 국가 무관 (국내 영화 및 해외 영화 모두 자유롭게 추천 가능)]
-- 대한민국 영화와 해외 영화 구분 없이, 사용자가 원하는 스토리/분위기에 가장 잘 어울리는 최고의 명작 영화 3편을 추천하세요.
+- 대한민국 영화와 해외 영화 구분 없이, 사용자가 원하는 스토리/분위기에 가장 잘 어울리는 최고의 명작 영화 {count}편을 추천하세요.
 - 한국 영화와 해외 영화가 골고루 섞여도 좋습니다.
 
 [🚨 절대 규칙 2: 오직 '단편/장편 영화(Feature Film)'만 추천할 것 (드라마 배제)]
@@ -300,27 +311,27 @@ def recommend():
     if start_date and end_date:
         date_filter_rule = f"""
 [🚨 절대 규칙 3: 개봉 시기 / 출시 기간 엄격 제한]
-- 반드시 {start_date} ~ {end_date} 사이에 극장 개봉(출시)된 영화만 3편 추천하세요.
+- 반드시 {start_date} ~ {end_date} 사이에 극장 개봉(출시)된 영화만 {count}편 추천하세요.
 - 이 개봉 기간을 벗어난 연도에 나온 영화는 단 1편도 추천해서는 안 됩니다.
 """
     elif start_date:
         date_filter_rule = f"""
 [🚨 절대 규칙 3: 개봉 시기 / 출시 기간 엄격 제한]
-- 반드시 {start_date} 이후에 개봉한 최신 영화만 3편 추천하세요.
+- 반드시 {start_date} 이후에 개봉한 최신 영화만 {count}편 추천하세요.
 """
     elif end_date:
         date_filter_rule = f"""
 [🚨 절대 규칙 3: 개봉 시기 / 출시 기간 엄격 제한]
-- 반드시 {end_date} 이전에 개봉한 영화만 3편 추천하세요.
+- 반드시 {end_date} 이전에 개봉한 영화만 {count}편 추천하세요.
 """
 
     # 6. 이미지 시각 분석 룰 구성
     image_analysis_rule = ""
     if image_part:
-        image_analysis_rule = """
+        image_analysis_rule = f"""
 [🚨 절대 규칙 4: 첨부 이미지(비주얼) 정밀 시각 분석 및 분위기/상황 매칭]
 - 사용자가 첨부한 이미지의 시각적 요소(색감, 조명, 계절감, 공간 배경, 등장인물의 상황/감정, 미장센, 영상미)를 깊이 있게 분석하세요.
-- 추천하는 영화 3편은 반드시 이 첨부 이미지의 분위기나 상황, 영상미와 찰떡같이 어울리는 작품이어야 합니다.
+- 추천하는 영화 {count}편은 반드시 이 첨부 이미지의 분위기나 상황, 영상미와 찰떡같이 어울리는 작품이어야 합니다.
 - 각 영화의 recommendation_reason(추천 이유)에 사용자가 업로드한 이미지의 어떤 시각적 분위기나 상황(예: '비 오는 푸른빛 골목의 차분한 분위기', '따뜻한 노을빛 색감과 낭만', '쓸쓸하고 고독한 감성', '청량하고 싱그러운 여름 풍경' 등)과 영화가 왜 어울리는지 구체적으로 연결지어 작성해 주세요.
 """
 
@@ -333,7 +344,7 @@ def recommend():
 
     prompt = f"""
 당신은 영화의 국적, 포맷, 개봉연도, 그리고 첨부된 이미지의 시각적 미장센을 매우 정밀하게 검증하는 최고 수준의 전문 영화 큐레이터입니다.
-사용자의 아래 요청 조건{'(및 첨부된 분위기 사진)' if image_part else ''}을 분석하여, 조건에 100% 부합하는 서로 다른 3편의 영화를 엄선해 주세요.
+사용자의 아래 요청 조건{'(및 첨부된 분위기 사진)' if image_part else ''}을 분석하여, 조건에 100% 부합하는 서로 다른 {count}편의 영화를 엄선해 주세요.
 
 [사용자 요청 조건]
 - 원하는 분위기 / 스토리: {keyword}
@@ -343,13 +354,14 @@ def recommend():
 - 선호하는 배우: {actor if actor else '상관없음'}
 - 희망 상영시간: {runtime if runtime else '상관없음'}
 - 희망 개봉기간: {f'{start_date} ~ {end_date}' if (start_date or end_date) else '제한없음'}
+- 추천 희망 편수: {count}편
 
 {origin_strict_rule}
 {date_filter_rule}
 {image_analysis_rule}
 {rating_rule}
 
-반드시 아래와 같은 JSON 배열 형식으로만 응답해 주세요 (총 3개의 영화 객체):
+반드시 아래와 같은 JSON 배열 형식으로만 응답해 주세요 (총 {count}개의 영화 객체):
 [
   {{
     "title": "영화 공식 한국어 제목",
@@ -408,8 +420,7 @@ def recommend():
         if isinstance(movies_data, dict):
             movies_data = [movies_data]
 
-        enriched_movies = []
-        for idx, movie_info in enumerate(movies_data[:3], start=1):
+        def enrich_movie_item(rank_idx, movie_info):
             movie_title = movie_info.get("title", "")
             release_year = movie_info.get("release_year", "")
             production_country = movie_info.get("production_country", "해외" if origin == "해외" else "대한민국")
@@ -418,8 +429,8 @@ def recommend():
             poster_url = search_poster_serper(movie_title, release_year)
             ott_info = search_ott_realtime(movie_title)
 
-            enriched_movies.append({
-                "rank": idx,
+            return {
+                "rank": rank_idx,
                 "title": movie_title,
                 "original_title": movie_info.get("original_title", ""),
                 "english_title": english_title,
@@ -435,7 +446,15 @@ def recommend():
                 "recommendation_reason": movie_info.get("recommendation_reason", "조건에 꼭 맞는 영화입니다."),
                 "poster_url": poster_url,
                 "ott_info": ott_info
-            })
+            }
+
+        # 최대 5개 스레드로 병렬 포스터 및 OTT 정보 검색 (최대 10편 추천도 신속 완료)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(count, 5)) as executor:
+            futures = [
+                executor.submit(enrich_movie_item, idx, m_info)
+                for idx, m_info in enumerate(movies_data[:count], start=1)
+            ]
+            enriched_movies = [f.result() for f in futures]
 
         return jsonify({
             "success": True, 

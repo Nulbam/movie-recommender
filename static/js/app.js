@@ -33,6 +33,51 @@ document.addEventListener("DOMContentLoaded", () => {
     const previewFilename = document.getElementById("previewFilename");
     const removeImageBtn = document.getElementById("removeImageBtn");
 
+    // 추천 편수(슬라이더 및 칩) 관련 DOM 엘리먼트 및 상태
+    const recommendCountInput = document.getElementById("recommendCount");
+    const countBadge = document.getElementById("countBadge");
+    const countChips = document.querySelectorAll(".count-chip");
+
+    let currentRecommendCount = 3;
+
+    function setRecommendCount(newCount) {
+        currentRecommendCount = Math.max(1, Math.min(10, parseInt(newCount, 10) || 3));
+        if (recommendCountInput) {
+            recommendCountInput.value = currentRecommendCount;
+        }
+        if (countBadge) {
+            countBadge.textContent = currentRecommendCount === 3 ? "3편 추천 (기본)" : `${currentRecommendCount}편 추천`;
+        }
+        if (submitBtn && !submitBtn.disabled) {
+            const btnText = submitBtn.querySelector(".btn-text");
+            if (btnText) {
+                btnText.textContent = `AI 맞춤 영화 ${currentRecommendCount}편 추천받기`;
+            }
+        }
+        // 활성화된 칩 버튼 동기화
+        countChips.forEach(chip => {
+            const chipCount = parseInt(chip.getAttribute("data-count"), 10);
+            if (chipCount === currentRecommendCount) {
+                chip.classList.add("active");
+            } else {
+                chip.classList.remove("active");
+            }
+        });
+    }
+
+    if (recommendCountInput) {
+        recommendCountInput.addEventListener("input", (e) => {
+            setRecommendCount(e.target.value);
+        });
+    }
+
+    countChips.forEach(chip => {
+        chip.addEventListener("click", () => {
+            const c = chip.getAttribute("data-count");
+            setRecommendCount(c);
+        });
+    });
+
     let uploadedImageBase64 = null;
 
     const DEFAULT_POSTER = "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=600&q=80";
@@ -271,6 +316,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
+                    count: currentRecommendCount,
                     genre: genre,
                     origin: origin,
                     keyword: keyword,
@@ -333,11 +379,16 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        const resultSubtitle = document.querySelector(".result-subtitle");
+        const resultSubtitle = document.getElementById("resultSubtitle") || document.querySelector(".result-subtitle");
         if (resultSubtitle) {
             resultSubtitle.innerHTML = hasImage 
-                ? "📸 <strong>첨부하신 사진의 분위기와 미장센</strong>에 꼭 어울리는 3편의 영화를 엄선했습니다."
-                : "당신의 취향 조건에 가장 잘 맞는 3편의 영화를 엄선했습니다.";
+                ? `📸 <strong>첨부하신 사진의 분위기와 미장센</strong>에 꼭 어울리는 ${movies.length}편의 영화를 엄선했습니다.`
+                : `당신의 취향 조건에 가장 잘 맞는 ${movies.length}편의 영화를 엄선했습니다.`;
+        }
+
+        const resultTitle = document.getElementById("resultTitle") || document.querySelector(".result-section-title");
+        if (resultTitle) {
+            resultTitle.textContent = `✨ AI 맞춤 영화 추천 (총 ${movies.length}편)`;
         }
 
         const rankBadges = [
@@ -347,7 +398,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ];
 
         movies.forEach((movie, index) => {
-            const rankInfo = rankBadges[index] || { icon: "🎬", label: `추천 ${index + 1}`, class: "rank-default" };
+            const rankInfo = rankBadges[index] || { icon: "🎬", label: `TOP ${index + 1} 추천작`, class: "rank-default" };
 
             const card = document.createElement("div");
             card.className = "card result-card";
@@ -556,19 +607,25 @@ document.addEventListener("DOMContentLoaded", () => {
     function setLoadingState(isLoading, hasImage = false) {
         if (isLoading) {
             submitBtn.disabled = true;
-            submitBtn.querySelector(".btn-text").textContent = hasImage ? "AI가 이미지 분위기와 영화를 매칭 중..." : "AI가 영화 3편을 정밀 큐레이션 중...";
+            submitBtn.querySelector(".btn-text").textContent = hasImage 
+                ? "AI가 이미지 분위기와 영화를 매칭 중..." 
+                : `AI가 영화 ${currentRecommendCount}편을 정밀 큐레이션 중...`;
             const loadingTitle = loadingSection.querySelector(".loading-title");
             const loadingDesc = loadingSection.querySelector(".loading-desc");
             if (loadingTitle) {
-                loadingTitle.textContent = hasImage ? "AI가 이미지의 시각적 미장센과 분위기를 분석하고 있습니다..." : "AI가 최적의 영화 3편을 큐레이션하고 있습니다...";
+                loadingTitle.textContent = hasImage 
+                    ? "AI가 이미지의 시각적 미장센과 분위기를 분석하고 있습니다..." 
+                    : `AI가 최적의 영화 ${currentRecommendCount}편을 큐레이션하고 있습니다...`;
             }
             if (loadingDesc) {
-                loadingDesc.textContent = hasImage ? "첨부하신 사진의 색감, 조명, 계절감 및 취향 조건에 꼭 맞는 인생 영화를 찾고 있습니다." : "선택하신 조건과 개봉 시기를 검증하고, 최신 포스터 및 실시간 OTT 정보를 조회 중입니다.";
+                loadingDesc.textContent = hasImage 
+                    ? "첨부하신 사진의 색감, 조명, 계절감 및 취향 조건에 꼭 맞는 인생 영화를 찾고 있습니다." 
+                    : "선택하신 조건과 개봉 시기를 검증하고, 최신 포스터 및 실시간 OTT 정보를 조회 중입니다.";
             }
             loadingSection.classList.remove("hidden");
         } else {
             submitBtn.disabled = false;
-            submitBtn.querySelector(".btn-text").textContent = "AI 맞춤 영화 3편 추천받기";
+            submitBtn.querySelector(".btn-text").textContent = `AI 맞춤 영화 ${currentRecommendCount}편 추천받기`;
             loadingSection.classList.add("hidden");
         }
     }

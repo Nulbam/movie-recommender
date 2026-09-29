@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 영화 큐레이터 | 맞춤 영화 추천 서비스 (TOP 3)</title>
+    <title>AI 영화 큐레이터 | 맞춤 영화 추천 서비스 (기본 3편, 최대 10편)</title>
     
     <!-- PWA 웹앱 매니페스트 및 메타 설정 -->
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
@@ -179,6 +179,31 @@
                                 </div>
                             </div>
 
+                            <!-- 추천 영화 수 선택 (기본 3편, 최대 10편 선택 가능) -->
+                            <div class="form-group count-group">
+                                <div class="count-header">
+                                    <label for="recommendCount">추천 편수 <span class="optional">(선택)</span></label>
+                                    <span class="count-badge" id="countBadge">3편 추천 (기본)</span>
+                                </div>
+                                <div class="count-slider-wrapper">
+                                    <input type="range" id="recommendCount" name="count" min="1" max="10" value="3" step="1" class="count-range-slider" aria-label="추천 영화 수 슬라이더">
+                                    <div class="count-scale">
+                                        <span>1편</span>
+                                        <span class="scale-default">3편 (기본)</span>
+                                        <span>5편</span>
+                                        <span>7편</span>
+                                        <span>10편 (최대)</span>
+                                    </div>
+                                </div>
+                                <div class="count-chips">
+                                    <button type="button" class="count-chip" data-count="1">1편</button>
+                                    <button type="button" class="count-chip active" data-count="3">3편 (기본)</button>
+                                    <button type="button" class="count-chip" data-count="5">5편</button>
+                                    <button type="button" class="count-chip" data-count="7">7편</button>
+                                    <button type="button" class="count-chip" data-count="10">10편 (최대)</button>
+                                </div>
+                            </div>
+
                             <!-- 제출 버튼 -->
                             <button type="submit" id="submitBtn" class="btn btn-primary">
                                 <span class="btn-text">AI 맞춤 영화 3편 추천받기</span>
@@ -198,8 +223,8 @@
                         </div>
                         <h3 class="empty-title">나만을 위한 인생 영화를 찾아보세요</h3>
                         <p class="empty-desc">
-                            왼쪽에서 원하는 <strong>스토리나 분위기</strong>를 적거나 <strong>사진</strong>을 올리고<br>
-                            <strong>[AI 맞춤 영화 3편 추천받기]</strong> 버튼을 누르면 이 자리에 인생 영화가 나타납니다!
+                            왼쪽에서 원하는 <strong>스토리나 분위기</strong>를 적거나 <strong>사진</strong>을 올리고 원하는 <strong>추천 편수(기본 3편, 최대 10편)</strong>를 지정한 뒤<br>
+                            <strong>[AI 맞춤 영화 추천받기]</strong> 버튼을 누르면 이 자리에 인생 영화가 나타납니다!
                         </p>
                         <div class="empty-features">
                             <div class="feature-tag">🎬 Gemini 3.5 AI 분석</div>
@@ -212,7 +237,7 @@
                     <!-- 2. 로딩 상태 표시 카드 -->
                     <div id="loadingSection" class="card loading-card hidden">
                         <div class="spinner"></div>
-                        <h3 class="loading-title">AI가 최적의 영화 3편을 큐레이션하고 있습니다...</h3>
+                        <h3 class="loading-title">AI가 최적의 맞춤 영화를 큐레이션하고 있습니다...</h3>
                         <p class="loading-desc">선택하신 조건과 개봉 시기를 검증하고, 최신 포스터 및 실시간 OTT 정보를 조회 중입니다.</p>
                     </div>
 
@@ -225,11 +250,11 @@
                         </div>
                     </div>
 
-                    <!-- 4. 추천 결과 화면: TOP 3 카드 컨테이너 -->
+                    <!-- 4. 추천 결과 화면: 카드 컨테이너 -->
                     <div id="resultSection" class="result-wrapper hidden">
                         <div class="result-header">
-                            <h2 class="result-section-title">✨ AI 맞춤 영화 추천 TOP 3</h2>
-                            <p class="result-subtitle">당신의 취향 조건에 가장 잘 맞는 3편의 영화를 엄선했습니다.</p>
+                            <h2 class="result-section-title" id="resultTitle">✨ AI 맞춤 영화 추천 (총 3편)</h2>
+                            <p class="result-subtitle" id="resultSubtitle">당신의 취향 조건에 가장 잘 맞는 3편의 영화를 엄선했습니다.</p>
                         </div>
                         
                         <div id="movieCardsContainer" class="movie-cards-container"></div>
