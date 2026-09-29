@@ -1,6 +1,6 @@
 /**
  * ==========================================================================
- * AI 영화 큐레이터 - 프론트엔드 인터랙션 스크립트 (캘린더 기간 검색 & PWA & 보안)
+ * AI 영화 큐레이터 - 프론트엔드 인터랙션 스크립트 (좌우 2단 대시보드 레이아웃 지원)
  * ==========================================================================
  */
 
@@ -17,6 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const presetButtons = document.querySelectorAll(".preset-btn");
     const submitBtn = document.getElementById("submitBtn");
 
+    const emptySection = document.getElementById("emptySection");
     const loadingSection = document.getElementById("loadingSection");
     const errorSection = document.getElementById("errorSection");
     const errorMessage = document.getElementById("errorMessage");
@@ -64,14 +65,12 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // 직접 날짜를 입력하거나 변경하면 프리셋 버튼 active 해제
     [startDateInput, endDateInput].forEach(input => {
         input.addEventListener("change", () => {
             presetButtons.forEach(b => b.classList.remove("active"));
         });
     });
 
-    // 날짜 리셋 버튼
     resetDateBtn.addEventListener("click", () => {
         startDateInput.value = "";
         endDateInput.value = "";
@@ -148,11 +147,16 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
+        // 로딩 시작 (대기 카드 숨기고 로딩 스피너 표시)
         setLoadingState(true);
+        if (emptySection) emptySection.classList.add("hidden");
         hideError();
         hideResult();
 
-        loadingSection.scrollIntoView({ behavior: "smooth", block: "center" });
+        // 모바일/태블릿 등 1열 화면일 때는 우측 로딩 영역으로 부드럽게 스크롤
+        if (window.innerWidth <= 1024) {
+            loadingSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
 
         try {
             const response = await fetch("/recommend", {
@@ -280,7 +284,7 @@ document.addEventListener("DOMContentLoaded", () => {
             else if (countryText.includes("프랑스")) countryIcon = "🇫🇷";
             else if (countryText.includes("독일")) countryIcon = "🇩🇪";
 
-            // 2단 분할 카드 내부 HTML 조립
+            // 개별 영화 카드 조립
             card.innerHTML = `
                 <div class="split-view">
                     <!-- 좌측: 포스터 이미지 -->
@@ -371,8 +375,14 @@ document.addEventListener("DOMContentLoaded", () => {
             movieCardsContainer.appendChild(card);
         });
 
+        // 대기 화면 숨기고 결과 영역 노출
+        if (emptySection) emptySection.classList.add("hidden");
         resultSection.classList.remove("hidden");
-        resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
+
+        // 모바일/태블릿 화면일 때 결과 영역으로 스크롤 이동
+        if (window.innerWidth <= 1024) {
+            resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
     }
 
     function escapeHtml(text) {
@@ -388,7 +398,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function setLoadingState(isLoading) {
         if (isLoading) {
             submitBtn.disabled = true;
-            submitBtn.querySelector(".btn-text").textContent = "AI가 조건에 맞는 영화 3편을 정밀 조회 중입니다...";
+            submitBtn.querySelector(".btn-text").textContent = "AI가 영화 3편을 정밀 큐레이션 중...";
             loadingSection.classList.remove("hidden");
         } else {
             submitBtn.disabled = false;
@@ -398,6 +408,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function showError(message) {
+        if (emptySection) emptySection.classList.add("hidden");
         errorMessage.textContent = message;
         errorSection.classList.remove("hidden");
         errorSection.scrollIntoView({ behavior: "smooth", block: "center" });
