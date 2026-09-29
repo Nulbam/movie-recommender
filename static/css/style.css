@@ -42,6 +42,54 @@ body {
     line-height: 1.6;
     padding: 30px 20px;
     min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* ==========================================================================
+   시네마틱 배경 레이어 (영화 포스터 모자이크 & 앰비언트 비네트 오버레이)
+   ========================================================================== */
+.cinema-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.backdrop-poster {
+    position: absolute;
+    top: -50px;
+    left: -50px;
+    right: -50px;
+    bottom: -50px;
+    background-image: url('../images/movie_backdrop.png');
+    background-repeat: repeat;
+    background-position: center top;
+    background-size: 540px auto;
+    opacity: 0.5;
+    filter: saturate(0.9) contrast(1.1) brightness(0.95);
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
+}
+
+.backdrop-glow {
+    position: absolute;
+    inset: 0;
+    background: 
+        radial-gradient(ellipse 70% 45% at 50% -5%, rgba(245, 158, 11, 0.08) 0%, transparent 70%),
+        radial-gradient(circle 800px at 85% 45%, rgba(59, 130, 246, 0.05) 0%, transparent 65%);
+}
+
+.backdrop-vignette {
+    position: absolute;
+    inset: 0;
+    background: 
+        radial-gradient(ellipse 85% 70% at 50% 45%, rgba(11, 15, 25, 0.35) 0%, rgba(11, 15, 25, 0.78) 65%, rgba(11, 15, 25, 0.98) 100%),
+        linear-gradient(180deg, rgba(11, 15, 25, 0.85) 0%, transparent 15%, transparent 85%, rgba(11, 15, 25, 0.95) 100%);
 }
 
 /* 2. 로그인 및 보안 잠금 화면 전용 레이아웃 */
@@ -56,10 +104,15 @@ body {
     width: 100%;
     max-width: 440px;
     margin: 0 auto;
+    position: relative;
+    z-index: 1;
 }
 
 .login-card {
     text-align: center;
+    background-color: rgba(21, 29, 48, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(245, 158, 11, 0.3);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), var(--shadow-glow);
     padding: 40px 32px;
@@ -156,6 +209,8 @@ body {
 .app-container {
     max-width: 1300px;
     margin: 0 auto;
+    position: relative;
+    z-index: 1;
 }
 
 /* 헤더 및 액션 버튼 */
@@ -277,12 +332,14 @@ body {
 
 /* 5. 공통 카드 스타일 */
 .card {
-    background-color: var(--bg-card);
-    border: 1px solid var(--border-color);
+    background-color: rgba(21, 29, 48, 0.86);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(38, 51, 82, 0.85);
     border-radius: var(--radius-lg);
     padding: 28px;
     margin-bottom: 24px;
-    box-shadow: var(--shadow-main);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     transition: var(--transition);
 }
 
@@ -1206,6 +1263,11 @@ textarea {
 @media (max-width: 768px) {
     body {
         padding: 16px 12px;
+    }
+
+    .backdrop-poster {
+        background-size: 380px auto;
+        opacity: 0.45;
     }
 
     .card {

@@ -18,6 +18,13 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body class="login-body">
+    <!-- 시네마틱 무드 배경 레이어 (영화 포스터 모자이크 및 앰비언트 비네트) -->
+    <div class="cinema-backdrop" aria-hidden="true">
+        <div class="backdrop-poster"></div>
+        <div class="backdrop-glow"></div>
+        <div class="backdrop-vignette"></div>
+    </div>
+
     <div class="login-wrapper">
         <div class="card login-card" id="loginBox">
             <!-- 자물쇠 보안 헤더 -->
