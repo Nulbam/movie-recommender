@@ -148,6 +148,30 @@
                                 </div>
                             </div>
 
+                            <!-- 분위기 이미지 업로드 (선택사항, AI 시각 감성 분석) -->
+                            <div class="form-group">
+                                <label for="imageUpload">분위기 이미지 업로드 <span class="optional">(선택)</span></label>
+                                <p class="form-hint">사진을 올리면 AI가 이미지의 색감, 미장센, 분위기를 분석해 찰떡같은 영화를 찾아줍니다.</p>
+                                
+                                <input type="file" id="imageUpload" accept="image/*" class="file-input-hidden">
+                                
+                                <div id="imageDropzone" class="image-dropzone" tabindex="0" role="button" aria-label="이미지 업로드 영역">
+                                    <div class="dropzone-content">
+                                        <span class="dropzone-icon">📷</span>
+                                        <p class="dropzone-text"><strong>클릭</strong>하여 사진 선택 또는 <strong>끌어다 놓기</strong></p>
+                                        <span class="dropzone-sub">풍경, 인물, 색감 사진 등 (JPG, PNG, WEBP)</span>
+                                    </div>
+                                </div>
+
+                                <div id="imagePreviewBox" class="image-preview-box hidden">
+                                    <img id="imagePreview" src="" alt="업로드 이미지 미리보기">
+                                    <div class="preview-overlay">
+                                        <span class="preview-filename" id="previewFilename">image.jpg</span>
+                                        <button type="button" id="removeImageBtn" class="remove-image-btn" title="이미지 삭제">✕ 삭제</button>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- 제출 버튼 -->
                             <button type="submit" id="submitBtn" class="btn btn-primary">
                                 <span class="btn-text">AI 맞춤 영화 3편 추천받기</span>
@@ -167,11 +191,12 @@
                         </div>
                         <h3 class="empty-title">나만을 위한 인생 영화를 찾아보세요</h3>
                         <p class="empty-desc">
-                            왼쪽에서 원하는 <strong>스토리나 분위기</strong>를 적고<br>
+                            왼쪽에서 원하는 <strong>스토리나 분위기</strong>를 적거나 <strong>사진</strong>을 올리고<br>
                             <strong>[AI 맞춤 영화 3편 추천받기]</strong> 버튼을 누르면 이 자리에 인생 영화가 나타납니다!
                         </p>
                         <div class="empty-features">
                             <div class="feature-tag">🎬 Gemini 3.5 AI 분석</div>
+                            <div class="feature-tag">📸 이미지 분위기 시각 매칭</div>
                             <div class="feature-tag">🖼️ 최신 포스터 자동 매칭</div>
                             <div class="feature-tag">📺 넷플릭스·티빙 실시간 OTT 확인</div>
                         </div>

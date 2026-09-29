@@ -25,6 +25,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const movieCardsContainer = document.getElementById("movieCardsContainer");
     const pwaInstallBtn = document.getElementById("pwaInstallBtn");
 
+    // 이미지 업로드 관련 DOM 엘리먼트
+    const imageUpload = document.getElementById("imageUpload");
+    const imageDropzone = document.getElementById("imageDropzone");
+    const imagePreviewBox = document.getElementById("imagePreviewBox");
+    const imagePreview = document.getElementById("imagePreview");
+    const previewFilename = document.getElementById("previewFilename");
+    const removeImageBtn = document.getElementById("removeImageBtn");
+
+    let uploadedImageBase64 = null;
+
     const DEFAULT_POSTER = "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=600&q=80";
 
     // 2. 캘린더 빠른 프리셋 선택 버튼 이벤트 제어
@@ -111,7 +121,112 @@ document.addEventListener("DOMContentLoaded", () => {
         if (pwaInstallBtn) pwaInstallBtn.classList.add("hidden");
     });
 
-    // 4. 폼 제출 이벤트 핸들러
+    // 4. 분위기 이미지 업로드 & 드래그 앤 드롭 핸들러
+    if (imageDropzone && imageUpload) {
+        imageDropzone.addEventListener("click", () => imageUpload.click());
+        
+        imageDropzone.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                imageUpload.click();
+            }
+        });
+
+        ["dragenter", "dragover"].forEach(eventName => {
+            imageDropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                imageDropzone.classList.add("dragover");
+            });
+        });
+
+        ["dragleave", "drop"].forEach(eventName => {
+            imageDropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                imageDropzone.classList.remove("dragover");
+            });
+        });
+
+        imageDropzone.addEventListener("drop", (e) => {
+            const files = e.dataTransfer.files;
+            if (files && files.length > 0) {
+                handleImageFile(files[0]);
+            }
+        });
+
+        imageUpload.addEventListener("change", (e) => {
+            if (e.target.files && e.target.files.length > 0) {
+                handleImageFile(e.target.files[0]);
+            }
+        });
+
+        if (removeImageBtn) {
+            removeImageBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                resetUploadedImage();
+            });
+        }
+    }
+
+    function handleImageFile(file) {
+        if (!file.type.startsWith("image/")) {
+            alert("이미지 파일만 업로드할 수 있습니다 (JPG, PNG, WEBP 등).");
+            return;
+        }
+
+        if (file.size > 12 * 1024 * 1024) {
+            alert("이미지 크기는 최대 12MB까지 가능합니다.");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                // 빠른 API 전송 및 Vercel 페이로드 최적화를 위한 Canvas 리사이징 (최대 1280px)
+                const maxDim = 1280;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxDim || height > maxDim) {
+                    if (width > height) {
+                        height = Math.round((height * maxDim) / width);
+                        width = maxDim;
+                    } else {
+                        width = Math.round((width * maxDim) / height);
+                        height = maxDim;
+                    }
+                }
+
+                const canvas = document.createElement("canvas");
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0, width, height);
+
+                uploadedImageBase64 = canvas.toDataURL("image/jpeg", 0.85);
+                imagePreview.src = uploadedImageBase64;
+                previewFilename.textContent = file.name;
+
+                imageDropzone.classList.add("hidden");
+                imagePreviewBox.classList.remove("hidden");
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function resetUploadedImage() {
+        uploadedImageBase64 = null;
+        imageUpload.value = "";
+        imagePreview.src = "";
+        previewFilename.textContent = "";
+        imagePreviewBox.classList.add("hidden");
+        imageDropzone.classList.remove("hidden");
+    }
+
+    // 5. 폼 제출 이벤트 핸들러
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
 
@@ -124,9 +239,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const startDate = startDateInput.value.trim();
         const endDate = endDateInput.value.trim();
 
-        // 필수 검증: 원하는 스토리나 분위기는 필수!
-        if (!keyword) {
-            alert("원하는 영화의 스토리나 분위기를 입력해 주세요!");
+        // 유효성 검사: 스토리 분위기 텍스트 또는 분위기 이미지 중 하나는 필수!
+        if (!keyword && !uploadedImageBase64) {
+            alert("원하는 영화의 스토리나 분위기를 입력하거나, 참고할 분위기 사진을 업로드해 주세요!");
             keywordInput.focus();
             return;
         }
@@ -138,7 +253,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         // 로딩 시작 (대기 카드 숨기고 로딩 스피너 표시)
-        setLoadingState(true);
+        const hasImage = !!uploadedImageBase64;
+        setLoadingState(true, hasImage);
         if (emptySection) emptySection.classList.add("hidden");
         hideError();
         hideResult();
@@ -158,6 +274,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     genre: genre,
                     origin: origin,
                     keyword: keyword,
+                    image_data: uploadedImageBase64 || "",
                     actor: actor,
                     runtime: runtime,
                     start_date: startDate,
@@ -171,7 +288,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 throw new Error(data.error || "추천 결과를 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.");
             }
 
-            renderMoviesResult(data.movies || []);
+            renderMoviesResult(data.movies || [], data.has_image || false);
 
         } catch (err) {
             console.error("영화 추천 요청 실패:", err);
@@ -208,12 +325,19 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // 6. 3편의 영화 카드를 동적으로 생성하여 렌더링하는 함수
-    function renderMoviesResult(movies) {
+    function renderMoviesResult(movies, hasImage = false) {
         movieCardsContainer.innerHTML = "";
 
         if (!movies || movies.length === 0) {
             showError("조건에 맞는 영화를 찾지 못했습니다. 조건을 조금 더 넓게 설정해 보세요.");
             return;
+        }
+
+        const resultSubtitle = document.querySelector(".result-subtitle");
+        if (resultSubtitle) {
+            resultSubtitle.innerHTML = hasImage 
+                ? "📸 <strong>첨부하신 사진의 분위기와 미장센</strong>에 꼭 어울리는 3편의 영화를 엄선했습니다."
+                : "당신의 취향 조건에 가장 잘 맞는 3편의 영화를 엄선했습니다.";
         }
 
         const rankBadges = [
@@ -291,6 +415,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <!-- 우측: 상세 정보 -->
                     <div class="split-right">
                         <div class="movie-header">
+                            ${hasImage ? '<span class="image-analyzed-badge">📸 이미지 분위기 매칭</span>' : ''}
                             <h2 class="movie-title">${escapeHtml(movie.title || "제목 미상")}</h2>
                             ${movie.original_title ? `<p class="movie-original-title">(${escapeHtml(movie.original_title)})</p>` : ""}
                         </div>
@@ -385,10 +510,18 @@ document.addEventListener("DOMContentLoaded", () => {
             .replace(/'/g, "&#039;");
     }
 
-    function setLoadingState(isLoading) {
+    function setLoadingState(isLoading, hasImage = false) {
         if (isLoading) {
             submitBtn.disabled = true;
-            submitBtn.querySelector(".btn-text").textContent = "AI가 영화 3편을 정밀 큐레이션 중...";
+            submitBtn.querySelector(".btn-text").textContent = hasImage ? "AI가 이미지 분위기와 영화를 매칭 중..." : "AI가 영화 3편을 정밀 큐레이션 중...";
+            const loadingTitle = loadingSection.querySelector(".loading-title");
+            const loadingDesc = loadingSection.querySelector(".loading-desc");
+            if (loadingTitle) {
+                loadingTitle.textContent = hasImage ? "AI가 이미지의 시각적 미장센과 분위기를 분석하고 있습니다..." : "AI가 최적의 영화 3편을 큐레이션하고 있습니다...";
+            }
+            if (loadingDesc) {
+                loadingDesc.textContent = hasImage ? "첨부하신 사진의 색감, 조명, 계절감 및 취향 조건에 꼭 맞는 인생 영화를 찾고 있습니다." : "선택하신 조건과 개봉 시기를 검증하고, 최신 포스터 및 실시간 OTT 정보를 조회 중입니다.";
+            }
             loadingSection.classList.remove("hidden");
         } else {
             submitBtn.disabled = false;
