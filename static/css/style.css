@@ -1008,6 +1008,7 @@ textarea {
     align-items: center;
     justify-content: center;
     border-right: 1px solid var(--border-color);
+    overflow: hidden;
 }
 
 .poster-container {
@@ -1085,12 +1086,16 @@ textarea {
     font-weight: 800;
     color: #ffffff;
     line-height: 1.25;
+    word-break: keep-all;
+    overflow-wrap: break-word;
 }
 
 .movie-original-title {
     font-size: 0.9rem;
     color: var(--text-secondary);
     margin-top: 3px;
+    word-break: keep-all;
+    overflow-wrap: break-word;
 }
 
 /* 글로벌 평점 뱃지 (IMDb & Rotten Tomatoes) */
@@ -1406,26 +1411,78 @@ textarea {
 
     .split-view {
         flex-direction: column;
+        width: 100%;
     }
 
     .split-left {
         flex: none;
         width: 100%;
-        max-height: 400px;
+        height: 280px;
+        max-height: 320px;
+        min-height: 240px;
+        overflow: hidden !important;
+        position: relative;
         border-right: none;
         border-bottom: 1px solid var(--border-color);
+        background-color: #080c14;
     }
 
     .poster-container {
-        min-height: 360px;
+        width: 100%;
+        height: 100%;
+        min-height: 0 !important;
+        max-height: 100%;
+        overflow: hidden !important;
+        position: relative;
+    }
+
+    .poster-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center 20%;
+        display: block;
+    }
+
+    .poster-badge {
+        top: 12px;
+        left: 12px;
+        font-size: 0.78rem;
+        padding: 5px 11px;
     }
 
     .split-right {
+        position: relative;
+        z-index: 5;
         padding: 20px 16px;
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+
+    .movie-header {
+        position: relative;
+        z-index: 6;
+        width: 100%;
+        min-width: 0;
+        margin-top: 0;
+        padding-bottom: 10px;
     }
 
     .movie-title {
-        font-size: 1.45rem;
+        font-size: 1.4rem;
+        line-height: 1.35;
+        word-break: keep-all;
+        overflow-wrap: break-word;
+        margin-top: 4px;
+        color: #ffffff;
+    }
+
+    .movie-original-title {
+        font-size: 0.85rem;
+        line-height: 1.4;
+        word-break: keep-all;
+        overflow-wrap: break-word;
     }
 
     .radio-group {
@@ -1440,5 +1497,31 @@ textarea {
     .verify-btn {
         width: 100%;
         justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .split-left {
+        height: 230px;
+        min-height: 200px;
+    }
+
+    .split-right {
+        padding: 16px 13px;
+    }
+
+    .movie-title {
+        font-size: 1.25rem;
+    }
+
+    .poster-badge {
+        top: 10px;
+        left: 10px;
+        font-size: 0.74rem;
+        padding: 4px 9px;
+    }
+
+    .info-block {
+        padding: 12px;
     }
 }
