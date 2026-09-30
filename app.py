@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import time
 import logging
 import urllib.parse
 import requests
@@ -178,6 +179,62 @@ def search_ott_realtime(movie_title):
     }
 
 
+# 2026년 실시간 극장 상영작 / 박스오피스 캐시 저장소 (1시간 유지)
+_SCREENING_CACHE = {
+    "data": {},
+    "timestamp": 0
+}
+
+
+def get_current_screenings_info(origin="전체"):
+    """Serper API를 통해 2026년 현재 상영작 및 박스오피스 최신 정보를 실시간 조회 (30분 메모리 캐싱)"""
+    global _SCREENING_CACHE
+    now = time.time()
+    cache_key = origin
+    if now - _SCREENING_CACHE["timestamp"] < 1800 and cache_key in _SCREENING_CACHE["data"]:
+        return _SCREENING_CACHE["data"][cache_key]
+
+    serper_key = get_serper_key()
+    if not serper_key:
+        return ""
+
+    headers = {
+        "X-API-KEY": serper_key,
+        "Content-Type": "application/json"
+    }
+
+    query = "현재 상영 영화 순위 박스오피스 극장 개봉작 2026"
+    if origin == "국내":
+        query = "2026년 한국 영화 개봉작 극장 상영작 박스오피스"
+    elif origin == "해외":
+        query = "2026년 해외 영화 외화 개봉작 극장 상영작 박스오피스"
+
+    try:
+        payload = {
+            "q": query,
+            "gl": "kr",
+            "hl": "ko",
+            "num": 6
+        }
+        res = requests.post("https://google.serper.dev/search", headers=headers, json=payload, timeout=4)
+        if res.status_code == 200:
+            items = res.json().get("organic", [])
+            snippets = []
+            for it in items[:5]:
+                t = it.get("title", "")
+                s = it.get("snippet", "")
+                if s:
+                    snippets.append(f"- {t}: {s}")
+            result_str = "\n".join(snippets)
+            _SCREENING_CACHE["data"][cache_key] = result_str
+            _SCREENING_CACHE["timestamp"] = now
+            return result_str
+    except Exception as e:
+        logger.warning(f"현재 상영작 실시간 검색 실패: {e}")
+
+    return ""
+
+
 @app.route("/")
 def index():
     """메인 라우트: 로그인 여부를 확인하여 잠금 화면(login.html) 또는 메인 앱(index.html) 서빙"""
@@ -231,6 +288,8 @@ def recommend():
     runtime = data.get("runtime", "").strip()
     start_date = data.get("start_date", "").strip()
     end_date = data.get("end_date", "").strip()
+
+    preset = data.get("preset", "").strip()
 
     # 추천 희망 편수 (기본 3편, 최소 1편, 최대 10편 선택 가능)
     try:
@@ -311,13 +370,13 @@ def recommend():
     if start_date and end_date:
         date_filter_rule = f"""
 [🚨 절대 규칙 3: 개봉 시기 / 출시 기간 엄격 제한]
-- 반드시 {start_date} ~ {end_date} 사이에 극장 개봉(출시)된 영화만 {count}편 추천하세요.
+- 반드시 {start_date} ~ {end_date} 사이에 극장 개봉(출시)된 영화만 {count}편 추천하세요. (2026년 최신 개봉작 포함)
 - 이 개봉 기간을 벗어난 연도에 나온 영화는 단 1편도 추천해서는 안 됩니다.
 """
     elif start_date:
         date_filter_rule = f"""
 [🚨 절대 규칙 3: 개봉 시기 / 출시 기간 엄격 제한]
-- 반드시 {start_date} 이후에 개봉한 최신 영화만 {count}편 추천하세요.
+- 반드시 {start_date} 이후에 개봉한 최신 영화(2025~2026년 최신작 포함)만 {count}편 추천하세요.
 """
     elif end_date:
         date_filter_rule = f"""
@@ -342,6 +401,34 @@ def recommend():
 - 이 공식 영문 제목을 기준으로 공식 IMDb 평점(10점 만점, 예: '8.5')과 로튼 토마토 신선도 지수(Tomatometer, 예: '96%')를 정확히 기재하세요. (공식 평점이 미등록된 독립영화나 신작은 'N/A'로 표기)
 """
 
+    # 8. 2026년 기준 시점 및 현재 상영작/최신 개봉작 반영 룰 (Serper 실시간 박스오피스 연동)
+    is_current_wanted = (
+        preset == "current" or
+        (start_date and start_date >= "2025") or
+        any(w in keyword for w in ["현재", "상영", "최신", "2026", "개봉", "요즘", "극장", "박스오피스"])
+    )
+
+    box_office_context = get_current_screenings_info(origin)
+
+    current_time_instruction = """
+[🚨 기준 시점: 현재 연도는 2026년입니다]
+- 현재 연도는 2026년입니다.
+- 최신 영화를 원하거나 특정 과거 연도로 제한되지 않은 일반 추천일 때도, 2025~2026년 최신 개봉작 및 현재 극장 상영작을 적극적으로 추천 목록에 포함하세요.
+"""
+    if is_current_wanted:
+        current_time_instruction += f"""
+[🚨 절대 규칙 6: 2025~2026년 최신 개봉작 및 현재 극장 상영작 최우선 추천]
+- 사용자가 현재 극장 상영작 또는 2026년 최신 개봉작을 원하고 있습니다.
+- 추천하는 {count}편은 반드시 2025년~2026년에 극장 개봉하였거나 현재 극장에서 상영 중인 최신 영화 위주(가급적 전원)로 구성해야 합니다.
+"""
+
+    if box_office_context:
+        current_time_instruction += f"""
+[💡 2026년 현재 극장 상영작 및 박스오피스 실시간 참고 정보 (대한민국 극장가 기준)]
+{box_office_context}
+- 위 실시간 극장 상영작 및 최신 개봉작 중 사용자의 취향이나 분위기 조건에 부합하는 작품이 있다면 최우선으로 반영하여 추천해 주세요.
+"""
+
     prompt = f"""
 당신은 영화의 국적, 포맷, 개봉연도, 그리고 첨부된 이미지의 시각적 미장센을 매우 정밀하게 검증하는 최고 수준의 전문 영화 큐레이터입니다.
 사용자의 아래 요청 조건{'(및 첨부된 분위기 사진)' if image_part else ''}을 분석하여, 조건에 100% 부합하는 서로 다른 {count}편의 영화를 엄선해 주세요.
@@ -356,6 +443,7 @@ def recommend():
 - 희망 개봉기간: {f'{start_date} ~ {end_date}' if (start_date or end_date) else '제한없음'}
 - 추천 희망 편수: {count}편
 
+{current_time_instruction}
 {origin_strict_rule}
 {date_filter_rule}
 {image_analysis_rule}
@@ -368,7 +456,7 @@ def recommend():
     "original_title": "영화 제작국가 원제 (예: 기생충, 千と千尋の神隠し, Inception)",
     "english_title": "공식 영문 제목 (IMDb / Rotten Tomatoes 검색용 영문 알파벳 표기, 예: Parasite, Spirited Away, Inception)",
     "production_country": "제작 국가 (예: 미국, 영국, 일본, 한국 등)",
-    "release_year": "개봉연도 (예: 2019)",
+    "release_year": "개봉연도 (예: 2026)",
     "genre": "세부 장르",
     "director": "감독 이름",
     "cast": "주요 출연진 목록 (쉼표 구분)",

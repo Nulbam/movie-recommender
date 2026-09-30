@@ -483,6 +483,24 @@ textarea {
     font-weight: 700;
 }
 
+.preset-btn[data-preset="current"] {
+    border-color: rgba(239, 68, 68, 0.45);
+    color: #fca5a5;
+}
+
+.preset-btn[data-preset="current"]:hover {
+    border-color: var(--accent-red);
+    color: #ffffff;
+}
+
+.preset-btn[data-preset="current"].active {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(220, 38, 38, 0.35) 100%);
+    border-color: var(--accent-red);
+    color: #ffffff;
+    font-weight: 700;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+}
+
 /* 캘린더 직접 선택 카드 (2열 그리드 구조) */
 .date-range-wrapper {
     background-color: rgba(15, 23, 42, 0.6);
@@ -676,6 +694,14 @@ textarea {
     background-color: var(--accent-red);
 }
 
+.movie-header-badges {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
 .image-analyzed-badge {
     display: inline-flex;
     align-items: center;
@@ -687,7 +713,20 @@ textarea {
     font-weight: 700;
     padding: 3px 10px;
     border-radius: 16px;
-    margin-bottom: 6px;
+}
+
+.badge-current-release {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(245, 158, 11, 0.2) 100%);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
 }
 
 /* 추천 편수 선택 (슬라이더 및 빠른 칩) */
@@ -1483,6 +1522,20 @@ textarea {
     border-color: #64748b;
     background-color: rgba(100, 116, 139, 0.15);
     color: #cbd5e1;
+}
+
+.ott-theater-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    background-color: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+    box-shadow: 0 2px 10px rgba(239, 68, 68, 0.15);
 }
 
 .ott-no-service {

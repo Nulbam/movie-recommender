@@ -96,6 +96,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     startDateInput.value = "";
                     endDateInput.value = "";
                     break;
+                case "current":
+                    startDateInput.value = `${currentYear - 1}-01-01`;
+                    endDateInput.value = `${currentYear}-12-31`;
+                    break;
                 case "latest":
                     startDateInput.value = `${currentYear - 2}-01-01`;
                     endDateInput.value = `${currentYear}-12-31`;
@@ -284,6 +288,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const startDate = startDateInput.value.trim();
         const endDate = endDateInput.value.trim();
 
+        const activePresetBtn = document.querySelector('.preset-btn.active');
+        const preset = activePresetBtn ? activePresetBtn.getAttribute('data-preset') : '';
+
         // 유효성 검사: 스토리 분위기 텍스트 또는 분위기 이미지 중 하나는 필수!
         if (!keyword && !uploadedImageBase64) {
             alert("원하는 영화의 스토리나 분위기를 입력하거나, 참고할 분위기 사진을 업로드해 주세요!");
@@ -324,7 +331,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     actor: actor,
                     runtime: runtime,
                     start_date: startDate,
-                    end_date: endDate
+                    end_date: endDate,
+                    preset: preset
                 })
             });
 
@@ -409,6 +417,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const kinolightsUrl = ottInfo.kinolights_url || `https://m.kinolights.com/search?keyword=${encodeURIComponent(movie.title)}`;
             const justwatchUrl = ottInfo.justwatch_url || `https://www.justwatch.com/kr/%EA%B2%80%EC%83%89?q=${encodeURIComponent(movie.title)}`;
 
+            // 2026/최신 개봉작 여부 판단
+            const releaseYearStr = String(movie.release_year || "");
+            const is2026Release = releaseYearStr.includes("2026");
+            const isLatestRelease = is2026Release || releaseYearStr.includes("2025");
+
             // 정액제 스트리밍 배지 HTML
             let streamingBadgesHtml = "";
             if (streamingList.length > 0) {
@@ -421,6 +434,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         </a>
                     `;
                 }).join("");
+            } else if (isLatestRelease) {
+                streamingBadgesHtml = `<span class="ott-theater-badge">🎬 ${escapeHtml(is2026Release ? "2026 최신 / 현재 극장 상영작" : "최신 개봉작 (극장 상영 / VOD)")}</span>`;
             } else {
                 streamingBadgesHtml = `<span class="ott-no-service">현재 월정액 스트리밍 서비스 미제공 (개별 구매/대여 전용)</span>`;
             }
@@ -510,7 +525,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     <!-- 우측: 상세 정보 -->
                     <div class="split-right">
                         <div class="movie-header">
-                            ${hasImage ? '<span class="image-analyzed-badge">📸 이미지 분위기 매칭</span>' : ''}
+                            <div class="movie-header-badges">
+                                ${isLatestRelease ? `<span class="badge-current-release">🔥 ${escapeHtml(is2026Release ? "2026 최신 개봉작" : (movie.release_year + " 최신작"))}</span>` : ''}
+                                ${hasImage ? '<span class="image-analyzed-badge">📸 이미지 분위기 매칭</span>' : ''}
+                            </div>
                             <h2 class="movie-title">${escapeHtml(movie.title || "제목 미상")}</h2>
                             ${subTitleText ? `<p class="movie-original-title">${escapeHtml(subTitleText)}</p>` : ""}
                         </div>
