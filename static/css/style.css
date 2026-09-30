@@ -1027,8 +1027,50 @@ textarea {
     transition: transform 0.4s ease;
 }
 
-.poster-img:hover {
-    transform: scale(1.03);
+.poster-container:hover .poster-img {
+    transform: scale(1.02);
+}
+
+/* 포스터 우측 하단 '확대' 아이콘 버튼 */
+.poster-zoom-btn {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    background: rgba(11, 15, 25, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(245, 158, 11, 0.6);
+    color: var(--accent-gold);
+    font-size: 0.76rem;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    z-index: 5;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.65);
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    outline: none;
+    user-select: none;
+}
+
+.poster-zoom-btn:hover {
+    background: rgba(245, 158, 11, 0.95);
+    color: #0b0f19;
+    border-color: #f59e0b;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.45);
+}
+
+.poster-zoom-btn:active {
+    transform: translateY(0) scale(0.96);
+}
+
+.poster-zoom-btn svg {
+    display: inline-block;
+    flex-shrink: 0;
 }
 
 /* 랭킹 뱃지 */
@@ -1065,6 +1107,145 @@ textarea {
     background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
     color: #cbd5e1;
     border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* ==========================================================================
+   포스터 원본 확대 모달 (우측 하단 확대 버튼 클릭 시 오픈)
+   ========================================================================== */
+.poster-expanded-popup {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.22s ease-in-out, visibility 0.22s ease-in-out;
+}
+
+.poster-expanded-popup.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.poster-expanded-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(5, 8, 15, 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    cursor: pointer;
+    transition: opacity 0.22s ease;
+}
+
+.poster-expanded-card {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.92);
+    width: auto;
+    max-width: min(92vw, 460px);
+    max-height: min(90vh, 740px);
+    background: rgba(21, 29, 48, 0.96);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1.5px solid rgba(245, 158, 11, 0.65);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95), 0 0 35px rgba(245, 158, 11, 0.25);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 10001;
+    pointer-events: auto;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease;
+}
+
+.poster-expanded-popup.active .poster-expanded-card {
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.poster-expanded-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    width: 30px;
+    height: 30px;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    z-index: 5;
+}
+
+.poster-expanded-close:hover {
+    background-color: var(--accent-red);
+    border-color: var(--accent-red);
+    color: #ffffff;
+    transform: scale(1.1);
+}
+
+.poster-expanded-img-wrap {
+    position: relative;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background-color: #0b0f19;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-height: min(70vh, 540px);
+}
+
+.poster-expanded-img {
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: min(70vh, 540px);
+    object-fit: contain; /* 원본 비율 100% 보존 - 잘림 일절 없음 */
+    display: block;
+    border-radius: var(--radius-md);
+}
+
+.poster-expanded-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(11, 15, 25, 0.85);
+    backdrop-filter: blur(6px);
+    color: var(--accent-gold);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.poster-expanded-info {
+    text-align: center;
+    padding: 0 4px;
+}
+
+.poster-expanded-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.3;
+    margin-bottom: 2px;
+}
+
+.poster-expanded-sub {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
 }
 
 /* 우측 영역: 상세 정보 */

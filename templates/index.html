@@ -269,6 +269,22 @@
         </footer>
     </div>
 
+    <!-- 포스터 원본 이미지 확대 모달 (우측 하단 확대 버튼 클릭 시) -->
+    <div id="posterExpandedPopup" class="poster-expanded-popup" aria-hidden="true">
+        <div class="poster-expanded-backdrop"></div>
+        <div class="poster-expanded-card">
+            <button type="button" class="poster-expanded-close" id="posterExpandedCloseBtn" title="닫기" aria-label="닫기">✕</button>
+            <div class="poster-expanded-img-wrap">
+                <img id="posterExpandedImg" src="" alt="확대된 영화 포스터" class="poster-expanded-img">
+                <div class="poster-expanded-badge">🔍 원본 포스터</div>
+            </div>
+            <div class="poster-expanded-info">
+                <h3 class="poster-expanded-title" id="posterExpandedTitle"></h3>
+                <p class="poster-expanded-sub" id="posterExpandedSub"></p>
+            </div>
+        </div>
+    </div>
+
     <!-- 전용 동작 스크립트 연결 -->
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>

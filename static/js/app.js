@@ -489,6 +489,21 @@ document.addEventListener("DOMContentLoaded", () => {
                                  class="poster-img" 
                                  onerror="this.src='${DEFAULT_POSTER}';">
                             <div class="poster-badge ${rankInfo.class}">${rankInfo.icon} ${rankInfo.label}</div>
+                            <button type="button" 
+                                    class="poster-zoom-btn" 
+                                    data-poster="${escapeHtml(movie.poster_url || DEFAULT_POSTER)}" 
+                                    data-title="${escapeHtml(movie.title || '영화 포스터')}" 
+                                    data-sub="${escapeHtml(subTitleText || movie.release_year || '')}" 
+                                    title="포스터 원본 크게 보기" 
+                                    aria-label="포스터 원본 크게 보기">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                    <line x1="11" y1="8" x2="11" y2="14"></line>
+                                    <line x1="8" y1="11" x2="14" y2="11"></line>
+                                </svg>
+                                <span>확대</span>
+                            </button>
                         </div>
                     </div>
 
@@ -644,5 +659,63 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function hideResult() {
         resultSection.classList.add("hidden");
+    }
+
+    // ==========================================================================
+    // 7. 포스터 원본 이미지 확대 모달 (우측 하단 확대 버튼 클릭 시 오픈)
+    // ==========================================================================
+    const posterPopup = document.getElementById("posterExpandedPopup");
+    const posterPopupImg = document.getElementById("posterExpandedImg");
+    const posterPopupTitle = document.getElementById("posterExpandedTitle");
+    const posterPopupSub = document.getElementById("posterExpandedSub");
+    const posterPopupCloseBtn = document.getElementById("posterExpandedCloseBtn");
+    const posterPopupBackdrop = posterPopup ? posterPopup.querySelector(".poster-expanded-backdrop") : null;
+
+    function openPosterPopup(posterSrc, title, sub) {
+        if (!posterPopup) return;
+        if (posterPopupImg) posterPopupImg.src = posterSrc || DEFAULT_POSTER;
+        if (posterPopupTitle) posterPopupTitle.textContent = title || "";
+        if (posterPopupSub) posterPopupSub.textContent = sub || "";
+
+        posterPopup.classList.add("active");
+        posterPopup.setAttribute("aria-hidden", "false");
+        document.body.style.overflow = "hidden"; // 배경 스크롤 방지
+    }
+
+    function closePosterPopup() {
+        if (!posterPopup) return;
+        posterPopup.classList.remove("active");
+        posterPopup.setAttribute("aria-hidden", "true");
+        document.body.style.overflow = ""; // 배경 스크롤 복구
+    }
+
+    // 닫기 버튼 및 어두운 배경 클릭 시 모달 닫기
+    if (posterPopupCloseBtn) {
+        posterPopupCloseBtn.addEventListener("click", closePosterPopup);
+    }
+    if (posterPopupBackdrop) {
+        posterPopupBackdrop.addEventListener("click", closePosterPopup);
+    }
+
+    // ESC 키로 모달 닫기
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && posterPopup && posterPopup.classList.contains("active")) {
+            closePosterPopup();
+        }
+    });
+
+    // 포스터 우측 하단 '확대' 아이콘 버튼 클릭 시에만 원본 모달 열기
+    if (movieCardsContainer) {
+        movieCardsContainer.addEventListener("click", (e) => {
+            const zoomBtn = e.target.closest(".poster-zoom-btn");
+            if (zoomBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                const posterSrc = zoomBtn.getAttribute("data-poster");
+                const title = zoomBtn.getAttribute("data-title");
+                const sub = zoomBtn.getAttribute("data-sub");
+                openPosterPopup(posterSrc, title, sub);
+            }
+        });
     }
 });
